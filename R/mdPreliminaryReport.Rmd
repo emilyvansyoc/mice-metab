@@ -1,0 +1,198 @@
+---
+title: "Preliminary Metabolomics Analysis"
+author: "Emily Bean"
+date: "`r Sys.Date()`"
+output:
+  prettydoc::html_pretty:
+    theme: tactile
+    highlight: github
+---
+
+## Overview
+
+This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Connie Rogers lab. 
+
+**General cleaning steps:**  
+1. Download archived raw .wiff files from Metabolomics Core  
+2. Convert .wiff to .mzML in ProteoWizard 4.0 (MS Convert)  
+3. Peak picking and alignment in MSDIAL (MoNA database for hydrophilic; LipidBlast for lipids)  
+4. Tidy in Excel  
+5. Upload to MetaboAnalyst; quantile normalization, Pareto scaling, and log transformation  
+6. Download normalized data for statistical analysis in R  
+
+**Analysis Steps:**  
+1. Individual metabolites 
+2. Sample clustering    
+3. Metabolic "community"    
+
+**Pairwise comparisons:**  
+*All comparisons made for aqueous (hydrophilic) and lipid data*  
+1. Plasma vs. tumor  
+2. Plasma D7 vs D21 vd D35  
+3. 4 treatment groups (2x2 factorial)  
+4. Exercise vs sedentary  
+5. Weight gain vs weight maintenance  
+
+
+
+```{r, warning = FALSE, message = FALSE, collapse = TRUE}
+## Read in all data and load packages
+require(dplyr)
+require(tidyr)
+require(vegan)
+require(ggplot2)
+
+# read all aqueous data
+aq <- read.table("F:/Metabolomics/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
+
+# read all lipids data
+lip <- read.table("F:/Metabolomics/allLipidsCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
+```
+
+*Summary of the data*  
+There are `r length(unique(aq$metabolite))` unique metabolites in the aqueous dataset. There are `r length(unique(lip$lipid)) ` unique lipids in the lipid dataset. The aqueous metabolites are named, for example: 
+```{r warning = FALSE, echo = FALSE}
+# table of several example aqueous metabolites
+knitr::kable(unique(aq$metabolite)[1:10], col.names = NULL)
+```
+
+The lipid metabolites are named based on the organic chemistry and bond order. For example: 
+```{r warning = FALSE, echo = FALSE}
+# table of several example aqueous metabolites
+knitr::kable(unique(lip$lipid)[1:10], col.names = NULL)
+```
+**Note:** The ` w/o` refers to lipids that had a good match with MS1 but not MS2. These are still usable but we are not as confident in their annotation as we are with the other lipids.  
+**Another Note:** These are _annotated metabolites only_. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.  
+
+## Individual Metabolites 
+
+This is an example of pairwise comparisons for individual aqueous metabolites. The code below runs a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table.  
+There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups. 
+
+```{r collapse = TRUE}
+### TUMOR
+
+# make separate dataframe for the tumor tissue
+tumor <- filter(aq, Label == "tumor")
+metabs <- levels(tumor$metabolite)
+
+pvalsTumor <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod <- aov(area ~ treatmentID, data = filter(tumor, metabolite == metabs[i]))
+  pvalsTumor[i, "metabolite"] <- metabs[i]
+  pvalsTumor[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+   
+}
+
+# pull significant p values into a table
+sigs <- pvalsTumor[pvalsTumor$pval < 0.05,]
+knitr::kable(sigs)
+
+```
+
+To determine which treatment groups vary, we can do a Tukey's post hoc test on each of the four significant metabolites. To illustrate, we will do a post hoc test on our first significant metabolite, `r sigs$metabolite[1]`. This shows that the only significant difference is between SED-ER and EX-AL.
+
+```{r}
+# make a new dataframe with only the significant metabolites
+sigMs <- tumor[tumor$metabolite %in% sigs$metabolite, ]
+
+# perform a Tukey test with the ANOVA included manually
+TukeyHSD(
+  aov(area ~ treatmentID, data = filter(sigMs, metabolite == sigs$metabolite[1]))
+)
+
+```
+
+## Community Analysis
+
+Another way of analyzing this data is to treat all of the metabolites in a sample as a community and look at differences between the "metabolomes" of each sample. 
+
+As an example, we can ordinate the tumor tissue and examine differences between the four treatment groups using a permutational ANOVA. This is done in the `vegan` package which was written for ecological community data.  
+
+```{r collapse = TRUE, warning = FALSE}
+## use the vegan package to do a normal MDS on Euclidean distance
+
+# we need a horizontal table of area under the curve and calculate relative abundance
+aqh <- aq %>% 
+  filter(Label == "tumor") %>% 
+  spread(key = metabolite, value = area) %>% 
+  select(-c(id, Label, mouseID, treatmentID, Exercise, Weight))
+aqhnorm <- decostand(aqh, MARGIN = 1, method = "range")
+
+# make a distance matrix (Euclidean)
+
+aqdist <- vegdist(aqhnorm, method = "euclidean")
+
+# ordinate the distance matrix
+
+ord <- metaMDS(aqhnorm)
+
+# test the fit of our ordination with a stressplot
+stressplot(ord, aqdist)
+
+## perform a permANOVA on our grouping variables
+aqhAll <- aq %>% 
+  filter(Label == "tumor") %>% 
+  spread(key = metabolite, value = area)
+adonis(aqdist ~ treatmentID, data = aqhAll) # there is no significance
+
+data <- aqhAll
+
+# First pull the coordinates from the metaMDS() ordination into 
+# your grouping & environmental variables dataframe
+data$NMDS1 <- ord$points[,1]
+data$NMDS2 <- ord$points[,2]
+
+
+# This pulls x and y coordinates for each 
+# abundance variable - in this case, enzymes (other cases, taxa or species)
+species.scores <- data.frame(scores(ord, display = "species"))
+species.scores$species <- row.names(species.scores) # if you have rownames this imports them
+# this will be used later to plot the enzymes on their ordination coordinates
+
+# function for ellipses that is floating all around the internet
+# only run this function, don't change anything in it
+veganCovEllipse <- function (cov, center = c(0, 0), scale = 1, npoints = 100) 
+{
+  theta <- (0:npoints) * 2 * pi/npoints
+  Circle <- cbind(cos(theta), sin(theta))
+  t(center + scale * t(Circle %*% chol(cov)))
+}
+
+# data for ellipses
+# loop: for each level of your grouping variable, save the correct coordinates for an ellipse 
+# in the dataframe df_ell
+
+
+df_ell <- data.frame() # creates empty dataframe to fill in the loop
+for(g in levels(data$treatmentID)){
+  df_ell <- rbind(df_ell, cbind(as.data.frame(with(data [data$treatmentID==g,],
+                                                   veganCovEllipse(cov.wt(cbind(NMDS1,NMDS2),wt=rep(1/length(NMDS1),length(NMDS1)))$cov,center=c(mean(NMDS1),mean(NMDS2)))))
+                                ,treatmentID=g))
+}
+str(df_ell) # your dataframe should have 3 columns: NMDS1, NMDS2, and your grouping variable
+
+# This pulls data to label the centers of the ellipses
+# data is the environmental/grouping variables dataframe
+NMDS.mean = aggregate(data[,c("NMDS1", "NMDS2")],
+                      list(group = data$treatmentID), mean)
+
+
+# plot in ggplot
+# if it bothers you to have it all under one command (GORDON), 
+# add a variable in front of ggplot() and in front of every line 
+# or comment out lines one at a time to work on them
+
+# hint: everywhere you see "Treatment", you will need to replace with your own grouping variable
+ggplot(data = data, aes(x = NMDS1, y = NMDS2)) + # this sets the basic plot
+  geom_polygon(data = df_ell, aes(fill = treatmentID, group = treatmentID, alpha=treatmentID)) + #add ellipses, grouped by your grouping variable
+  # if you don't want the polygon filled with a color, use geom_path instead of geom_polygon
+  geom_point(aes(x = NMDS1, y = NMDS2, shape = treatmentID, color = treatmentID), size = 1) +  #adds ordination points, shaped by grouping variable
+  annotate("text",x = NMDS.mean$NMDS1,y = NMDS.mean$NMDS2,label=NMDS.mean$group)   +
+  theme_classic() + # white background, no grid lines, black axises
+  # theme_bw() will keep gridlines but put thick black line around plot
+  ggtitle("NMDS of all 4 treatment groups TUMOR TISSUE")
+```
+
