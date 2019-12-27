@@ -43,10 +43,10 @@ require(vegan)
 require(ggplot2)
 
 # read all aqueous data
-aq <- read.table("F:/Metabolomics/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
 
 # read all lipids data
-lip <- read.table("F:/Metabolomics/allLipidsCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
+lip <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allLipidsCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
 ```
 
 *Summary of the data*  
@@ -63,6 +63,10 @@ knitr::kable(unique(lip$lipid)[1:10], col.names = NULL)
 ```
 **Note:** The ` w/o` refers to lipids that had a good match with MS1 but not MS2. These are still usable but we are not as confident in their annotation as we are with the other lipids.  
 **Another Note:** These are _annotated metabolites only_. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.  
+
+## Does the plasma tumor metabolome change throughout time?  
+
+It's important for downstream analysis to first determine if the plasma metabolome change significantly from day 7, to day 21, to day 35. If there are differences, we will need to keep the days separate for downstream analyses; if not, we can likely lump them all together.
 
 ## Individual Metabolites 
 
