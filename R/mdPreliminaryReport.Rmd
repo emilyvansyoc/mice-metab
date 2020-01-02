@@ -70,8 +70,14 @@ It's important for downstream analysis to first determine if the plasma metabolo
 
 ## Individual Metabolites 
 
-This is an example of pairwise comparisons for individual aqueous metabolites. The code below runs a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table.  
-There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups. 
+#### Four treatment groups
+
+The initial analyis is comparing all four treatment groups to each other in the 2x2 factorial style. The code follows this structure for pairwise comparisons with ANOVA:
+
+>This code is a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table. 
+
+##### Tumor Tissue
+There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue. 
 
 ```{r collapse = TRUE}
 ### TUMOR
