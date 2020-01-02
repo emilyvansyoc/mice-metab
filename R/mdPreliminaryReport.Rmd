@@ -41,6 +41,8 @@ require(dplyr)
 require(tidyr)
 require(vegan)
 require(ggplot2)
+require(pairwiseAdonis)
+require(ggordiplots)
 
 # read all aqueous data
 aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
@@ -64,9 +66,76 @@ knitr::kable(unique(lip$lipid)[1:10], col.names = NULL)
 **Note:** The ` w/o` refers to lipids that had a good match with MS1 but not MS2. These are still usable but we are not as confident in their annotation as we are with the other lipids.  
 **Another Note:** These are _annotated metabolites only_. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.  
 
-## Does the plasma tumor metabolome change throughout time?  
+## Plasma aqueous metabolites through time  
 
-It's important for downstream analysis to first determine if the plasma metabolome change significantly from day 7, to day 21, to day 35. If there are differences, we will need to keep the days separate for downstream analyses; if not, we can likely lump them all together.
+It's important for downstream analysis to first determine if the plasma metabolome change significantly from day 7, to day 21, to day 35. If there are differences, we will need to keep the days separate for downstream analyses; if not, we can likely lump them all together.  
+
+An ANOVA on each individual metabolite by Time shows that there are several metabolites that differ between the times, so when analyzing plasma metabolome we will keep Time as a separate factor.
+
+```{r}
+# create a column for the different days
+
+plasmaaq <- aq %>% 
+  filter(!Label == "tumor") %>% 
+  mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "7",
+    Label %in% "plasmaD21" ~ "21",
+    Label %in% "plasmaD35" ~ "35"
+  ), ordered = TRUE, levels = c("7", "21", "35")))
+
+# are there differences between time points?
+plasmetab <- unique(plasmaaq$metabolite)
+pvals <- data.frame()
+
+for(i in 1:length(plasmetab)) {
+  mod <- aov(area ~ Time, data = filter(plasmaaq, metabolite == plasmetab[i]))
+  pvals[i, "metabolite"] <- plasmetab[i]
+  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+}
+
+# pull significant p values into a table
+sigs <- pvals[pvals$pval < 0.05,]
+knitr::kable(sigs)
+```
+
+We know that individual metabolites vary throughout time, and we can also look at the entire metabolite "communitY" with an NMDS. The statistical test is a permutational ANOVA, which can be done in a pair-wise fashion to get p values similar to a Tukey's test.
+```{r}
+
+```
+
+The plot does not intuitively show any differences between the ellipses; remember, this is only a visual tool. 
+```{r}
+# pull NMDS coordinates
+plasmaH$NMDS1 <- ord$points[,1]
+plasmaH$NMDS2 <- ord$points[,2]
+
+# IF ANY EFT OBJECTS ARE SIGNIFICANT:
+# pull significant envfit objects to plots
+#species.scores <- data.frame(eft$vectors$arrows[eft$vectors$pvals < 0.05,])
+#species.scores$species <- row.names(eft$vectors$arrows[eft$vectors$pvals < 0.05,])
+
+# save gg_ordiplot object to get ellipse values
+plot <-  gg_ordiplot(ord, groups = plasmaH$Time, label = FALSE, plot = FALSE)
+# get ellipse coordinates
+df_ell <- plot$df_ellipse
+# get label coordinates for ellipse centers
+NMDS.mean <- plot$df_mean.ord
+# pull NMDS coordinates
+ord.data <- plot$df_ord 
+
+## create in ggplot2
+ggplot(data = plasmaH, aes(x = NMDS1, y = NMDS2)) +
+  geom_path(data = df_ell, aes(x = x, y = y, color = Group), show.legend = FALSE) +
+  geom_point(aes(x = NMDS1, y = NMDS2, color = Time), size = 1) +
+  annotate("text",x = NMDS.mean$x, y = NMDS.mean$y,label=NMDS.mean$Group) +
+ # geom_segment(data = species.scores,
+  #             aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2), colour = "grey") +
+  #geom_text(data = species.scores, 
+   #         aes(x = NMDS1, y = NMDS2, label=species),
+    #        size = 3) +
+  ggtitle("Plasma metabolome by Time") +
+  theme_bw()
+```
 
 ## Individual Metabolites 
 
@@ -80,123 +149,28 @@ There are four significant metabolites; that is, four metabolites vary significa
 tumor <- filter(aq, Label == "tumor")
 metabs <- levels(tumor$metabolite)
 
-pvalsTumor <- data.frame()
+pvals <- data.frame()
 
 # run the for loop
 for(i in 1:length(metabs)) {
   mod <- aov(area ~ treatmentID, data = filter(tumor, metabolite == metabs[i]))
-  pvalsTumor[i, "metabolite"] <- metabs[i]
-  pvalsTumor[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
    
 }
 
 # pull significant p values into a table
-sigs <- pvalsTumor[pvalsTumor$pval < 0.05,]
-knitr::kable(sigs)
+sigs <- pvals[pvals$pval < 0.05,]
+knitr::kable(sigs, col.names =  c("metabolite", "p value"))
 
 ```
 
-To determine which treatment groups vary, we can do a Tukey's post hoc test on each of the four significant metabolites. To illustrate, we will do a post hoc test on our first significant metabolite, `r sigs$metabolite[1]`. This shows that the only significant difference is between SED-ER and EX-AL.
 
-```{r}
-# make a new dataframe with only the significant metabolites
-sigMs <- tumor[tumor$metabolite %in% sigs$metabolite, ]
-
-# perform a Tukey test with the ANOVA included manually
-TukeyHSD(
-  aov(area ~ treatmentID, data = filter(sigMs, metabolite == sigs$metabolite[1]))
-)
-
-```
 
 ## Community Analysis
 
 Another way of analyzing this data is to treat all of the metabolites in a sample as a community and look at differences between the "metabolomes" of each sample. 
 
-As an example, we can ordinate the tumor tissue and examine differences between the four treatment groups using a permutational ANOVA. This is done in the `vegan` package which was written for ecological community data.  
+### Non-metric multidimensional scaling (NMDS)
 
-```{r collapse = TRUE, warning = FALSE}
-## use the vegan package to do a normal MDS on Euclidean distance
-
-# we need a horizontal table of area under the curve and calculate relative abundance
-aqh <- aq %>% 
-  filter(Label == "tumor") %>% 
-  spread(key = metabolite, value = area) %>% 
-  select(-c(id, Label, mouseID, treatmentID, Exercise, Weight))
-aqhnorm <- decostand(aqh, MARGIN = 1, method = "range")
-
-# make a distance matrix (Euclidean)
-
-aqdist <- vegdist(aqhnorm, method = "euclidean")
-
-# ordinate the distance matrix
-
-ord <- metaMDS(aqhnorm)
-
-# test the fit of our ordination with a stressplot
-stressplot(ord, aqdist)
-
-## perform a permANOVA on our grouping variables
-aqhAll <- aq %>% 
-  filter(Label == "tumor") %>% 
-  spread(key = metabolite, value = area)
-adonis(aqdist ~ treatmentID, data = aqhAll) # there is no significance
-
-data <- aqhAll
-
-# First pull the coordinates from the metaMDS() ordination into 
-# your grouping & environmental variables dataframe
-data$NMDS1 <- ord$points[,1]
-data$NMDS2 <- ord$points[,2]
-
-
-# This pulls x and y coordinates for each 
-# abundance variable - in this case, enzymes (other cases, taxa or species)
-species.scores <- data.frame(scores(ord, display = "species"))
-species.scores$species <- row.names(species.scores) # if you have rownames this imports them
-# this will be used later to plot the enzymes on their ordination coordinates
-
-# function for ellipses that is floating all around the internet
-# only run this function, don't change anything in it
-veganCovEllipse <- function (cov, center = c(0, 0), scale = 1, npoints = 100) 
-{
-  theta <- (0:npoints) * 2 * pi/npoints
-  Circle <- cbind(cos(theta), sin(theta))
-  t(center + scale * t(Circle %*% chol(cov)))
-}
-
-# data for ellipses
-# loop: for each level of your grouping variable, save the correct coordinates for an ellipse 
-# in the dataframe df_ell
-
-
-df_ell <- data.frame() # creates empty dataframe to fill in the loop
-for(g in levels(data$treatmentID)){
-  df_ell <- rbind(df_ell, cbind(as.data.frame(with(data [data$treatmentID==g,],
-                                                   veganCovEllipse(cov.wt(cbind(NMDS1,NMDS2),wt=rep(1/length(NMDS1),length(NMDS1)))$cov,center=c(mean(NMDS1),mean(NMDS2)))))
-                                ,treatmentID=g))
-}
-str(df_ell) # your dataframe should have 3 columns: NMDS1, NMDS2, and your grouping variable
-
-# This pulls data to label the centers of the ellipses
-# data is the environmental/grouping variables dataframe
-NMDS.mean = aggregate(data[,c("NMDS1", "NMDS2")],
-                      list(group = data$treatmentID), mean)
-
-
-# plot in ggplot
-# if it bothers you to have it all under one command (GORDON), 
-# add a variable in front of ggplot() and in front of every line 
-# or comment out lines one at a time to work on them
-
-# hint: everywhere you see "Treatment", you will need to replace with your own grouping variable
-ggplot(data = data, aes(x = NMDS1, y = NMDS2)) + # this sets the basic plot
-  geom_polygon(data = df_ell, aes(fill = treatmentID, group = treatmentID, alpha=treatmentID)) + #add ellipses, grouped by your grouping variable
-  # if you don't want the polygon filled with a color, use geom_path instead of geom_polygon
-  geom_point(aes(x = NMDS1, y = NMDS2, shape = treatmentID, color = treatmentID), size = 1) +  #adds ordination points, shaped by grouping variable
-  annotate("text",x = NMDS.mean$NMDS1,y = NMDS.mean$NMDS2,label=NMDS.mean$group)   +
-  theme_classic() + # white background, no grid lines, black axises
-  # theme_bw() will keep gridlines but put thick black line around plot
-  ggtitle("NMDS of all 4 treatment groups TUMOR TISSUE")
-```
-
+NMDS plots each sample by its similarity to the community of another sample. The statistical test is a permutational ANOVA to determine statistical differences between treatment groups. In theory, you can visually see statistical significance on the NMDS plot when two ellipses are separate from each other. In practice, this doesn't always happen because ordinations are performed in multiple dimensions and reduced to 2D for visualization, so keep that in mind. 
