@@ -3,9 +3,9 @@ require(dplyr)
 require(tidyr)
 require(stringr)
 
-sampkey <- read.csv("lipid_SampleKeys1.csv", stringsAsFactors = FALSE)[-1,] # remove Blank row
+sampkey <- read.csv("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/lipidSampleKeys.csv", stringsAsFactors = FALSE)[-1,] # remove Blank row
 
-mousekey <- read.table("mouseKeys.txt", header = TRUE, stringsAsFactors = FALSE)
+mousekey <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/mouseKeys.txt", header = TRUE, stringsAsFactors = FALSE)
 
 
 ## wrangle the heck out of this
@@ -51,15 +51,15 @@ keys <- merge(sampkey, mousekey, by = "id")
 toSave <- keys %>% 
   select(id, shortID, tissue.type, ion, treatmentID, Exercise, Weight)
 
-write.table(keys, "allLipidKeys.txt", row.names = FALSE)
+##write.table(keys, "./data/allLipidKeys.txt", row.names = FALSE)
 
 ## Finish cleaning pos and neg data
 
 # read without row1 because that is MetaboAnalyst "grouping" variable
-pos <- read.csv("F:/Metabolomics/Rogers_TripleTOF/POS_MetaboAnalyst/data_normalized.csv")[-1,]
-neg <- read.csv("F:/Metabolomics/Rogers_TripleTOF/NEG_MetaboAnalyst/data_normalized.csv")[-1,]
+pos <- read.csv("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/data_normalizedPOS.csv")[-1,]
+neg <- read.csv("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/data_normalizedNEG.csv")[-1,]
 
-key <- read.table("allLipidKeys.txt", header = TRUE)
+##key <- read.table("allLipidKeys.txt", header = TRUE)
 
 posv <- pos %>% 
   gather(key = longID, value = "area", 2:ncol(pos)) %>% 
@@ -80,9 +80,9 @@ for(i in 1:nrow(negv)) {
 
 # merge all with the key
 all <- rbind(negv, posv) %>% 
-  merge(key, by = "shortID") %>% 
-  # have lots of columns; don't need to keep al
+  merge(keys, by = "shortID") %>% 
+  # have lots of columns; don't need to keep all
   select(lipid, SampleName, tissue.type, ion, mouseID, treatmentID, Exercise, Weight, area)
 
 # write this to file
-write.table(all, "allLipidsCleaned.txt", row.names = FALSE)
+##write.table(all, "./data/allLipidsCleaned.txt", row.names = FALSE)

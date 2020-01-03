@@ -145,7 +145,7 @@ The initial analyis is comparing all four treatment groups to each other in the 
 
 >This code is a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table. 
 
-##### Tumor Tissue
+##### Tumor tissue - aqueous
 There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue. 
 
 ```{r collapse = TRUE}
@@ -170,6 +170,8 @@ sigs <- pvals[pvals$pval < 0.05,]
 knitr::kable(sigs, col.names =  c("metabolite", "p value"))
 
 ```
+
+##### Tumor tissue - lipids
 
 
 

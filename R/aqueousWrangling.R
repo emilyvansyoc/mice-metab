@@ -6,12 +6,12 @@
 require(dplyr)
 require(tidyr)
 require(ggplot2)
-aq <- read.csv("F:/Metabolomics/Rogers_Orbitrap/MetaboAnalyst/data_normalized.csv", header = TRUE, stringsAsFactors = TRUE) %>% 
+aq <- read.csv("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/data_normalizedAQ.csv", header = TRUE, stringsAsFactors = TRUE) %>% 
   mutate(id = X,
          X = NULL)
 
 # add sample keys
-key <- read.table("F:/Metabolomics/sampleKey.txt", header = TRUE) %>% 
+key <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/sampleKey.txt", header = TRUE) %>% 
   # add runID with a dash
   mutate(tumor = paste(runID, tumor, sep = "-"),
          plasmaD7 = paste(runID, plasmaD7, sep = "-"),
@@ -52,5 +52,5 @@ qqnorm(aqdataVert$area)
 qqline(aqdataVert$area)
 
 # write for RMD
-#write.table(aqdataVert, file = "allAqueousCleaned.txt", row.names = FALSE)
+#write.table(aqdataVert, file = "./data/allAqueousCleaned.txt", row.names = FALSE)
 
