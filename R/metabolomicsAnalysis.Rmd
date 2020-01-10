@@ -29,14 +29,14 @@ This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Co
 3. Metabolic "community"    
 
 ### Pairwise comparisons  
-*All comparisons made for aqueous (hydrophilic) and lipid data*  
+*All comparisons made for tumor and plasma tissues*  
 1. Plasma D7 vs D21 vd D35  
 2. 4 treatment groups (2x2 factorial)  
 3. Exercise vs sedentary  
 4. Weight gain vs weight maintenance  
 **Note:** These are _annotated metabolites only_. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.
 
-```{r}
+```{r echo = FALSE}
 ## Read in all data and load packages
 require(dplyr)
 require(tidyr)
@@ -81,6 +81,62 @@ sigs <- pvals[pvals$pval < 0.05,]
 knitr::kable(sigs)
 ```
 
+To visualize the results, we can use a Tukey pos-hoc test.
+```{r}
+sigdf <- plasmaaq[plasmaaq$metabolite %in% sigs$metabolite, ]
+
+# perform ANOVA again and store Tukey variables
+Tmetabs <- unique(sigdf$metabolite)
+tukeyOut <- data.frame()
+
+for(i in 1:length(Tmetabs)) {
+  # re-run the ANOVA
+  mod <- aov(area ~ Time, data = filter(sigdf, metabolite == Tmetabs[i]))
+  # perform Tukey post-hoc test and store significant p values
+  tuk <- TukeyHSD(mod)
+  tukmat <- tuk$Time
+  sig <- data.frame(p = round(tukmat[,"p adj"], 4),
+                    contrast = dimnames(tukmat)[[1]])
+  
+  
+  ## workaround for if Tukey does not show significance but ANOVA does:
+  if(any(sig$p < 0.05)) {
+    
+    sigsdf <- sig[sig$p < 0.05, ] 
+    sigsdf$metabolite <- Tmetabs[i]
+  } else {
+    
+    sigsdf <- data.frame(p = "error",
+                         contrast = "error",
+                         metabolite = Tmetabs[i])
+    
+  }
+  
+  
+  # append to outDF
+  tukeyOut <- rbind(tukeyOut, sigsdf)
+}
+
+
+
+rownames(tukeyOut) <- NULL
+tukeyOut <- tukeyOut[!tukeyOut$p %in% "error",]
+
+knitr::kable(tukeyOut)
+```
+Another visualization tool is boxplots.
+```{r}
+## make boxplots to illustrate differences
+
+tukdf <- plasmaaq[plasmaaq$metabolite %in% tukeyOut$metabolite, ]
+
+ggplot(data = tukdf, aes(x = Time, y = area)) +
+  geom_boxplot() +
+  facet_wrap(~metabolite) 
+```
+
+
+
 ## Individual Metabolites 
 
 #### Four treatment groups
@@ -115,16 +171,288 @@ knitr::kable(sigs, col.names =  c("metabolite", "p value"))
 
 ```
 
-#### Plasma
-
+To visualize the results, we can use a Tukey pos-hoc test.
 ```{r}
-### PLASMA
+sigdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
 
-# df: plasmaaq
-# list of metabolites: plasmetab
+# perform ANOVA again and store Tukey variables
+Tmetabs <- unique(sigdf$metabolite)
+tukeyOut <- data.frame()
+
+for(i in 1:length(Tmetabs)) {
+  # re-run the ANOVA
+  mod <- aov(area ~ treatmentID, data = filter(sigdf, metabolite == Tmetabs[i]))
+  # perform Tukey post-hoc test and store significant p values
+  tuk <- TukeyHSD(mod)
+  tukmat <- tuk$treatmentID
+  sig <- data.frame(p = round(tukmat[,"p adj"], 4),
+                    contrast = dimnames(tukmat)[[1]])
+  
+  
+  ## workaround for if Tukey does not show significance but ANOVA does:
+  if(any(sig$p < 0.05)) {
+    
+    sigsdf <- sig[sig$p < 0.05, ] 
+    sigsdf$metabolite <- Tmetabs[i]
+  } else {
+    
+    sigsdf <- data.frame(p = "error",
+                         contrast = "error",
+                         metabolite = Tmetabs[i])
+    
+  }
+  
+  
+  # append to outDF
+  tukeyOut <- rbind(tukeyOut, sigsdf)
+}
+
+
+
+rownames(tukeyOut) <- NULL
+tukeyOut <- tukeyOut[!tukeyOut$p %in% "error",]
+
+knitr::kable(tukeyOut)
+```
+Another visualization tool is boxplots.
+```{r}
+## make boxplots to illustrate differences
+
+tukdf <- tumor[tumor$metabolite %in% tukeyOut$metabolite, ]
+
+ggplot(data = tukdf, aes(x = treatmentID, y = area)) +
+  geom_boxplot() +
+  facet_wrap(~metabolite) 
+```
+##### Plasma
+
+
+Since we clearly saw that there is a difference in the plasma aqueous metabolites between days (above), we will keep Time as a separate factor moving forward.
+Three separate ANOVAs; one for each time point.
+```{r}
+
+# get metabolites
+# df - plasmaaq
+# list of metabolites - plasmetab
+
+pvals <- data.frame()
 
 # run the for loop
-# Time is kept separate
+for(i in 1:length(metabs)) {
+  mod1 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "7"))
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
+  mod2 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "21"))
+  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
+  mod3 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "35"))
+  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
+  
+}
 
+sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
+
+```
+
+```{r}
+
+
+sigdf <- plasmaaq[plasmaaq$metabolite %in% sigs$metabolite, ]
+
+# perform ANOVA again and store Tukey variables
+Tmetabs <- unique(sigdf$metabolite)
+tukeyOut <- data.frame()
+
+for(i in 1:length(Tmetabs)) {
+  # re-run the ANOVA
+  mod1 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "7"))
+  tuk1 <- TukeyHSD(mod1)$treatmentID 
+  tuk1 <- cbind(tuk1, Time = 7)
+  mod2 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "21"))
+  tuk2 <- TukeyHSD(mod2)$treatmentID
+  tuk2 <- cbind(tuk2, Time = 21)
+  mod3 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "35"))
+  tuk3 <- TukeyHSD(mod3)$treatmentID
+  tuk3 <- cbind(tuk3, Time = 35)
+  
+  # perform Tukey post-hoc test and store significant p values
+  
+  tukmat <- rbind(tuk1, tuk2, tuk3)
+  sig <- data.frame(p = round(tukmat[,"p adj"], 4),
+                    contrast = dimnames(tukmat)[[1]],
+                    metabolite = as.character(Tmetabs[i]),
+                    time = tukmat[,"Time"])
+  tukeyOut <- rbind(sig, tukeyOut)
+  
+}
+
+knitr::kable(tukeyOut)
+```
+
+```{r}
+
+## make boxplots to illustrate differences
+
+tukdf <- plasmaaq[plasmaaq$metabolite %in% tukeyOut$metabolite, ]
+
+ggplot(data = tukdf, aes(x = treatmentID, y = area)) +
+  geom_boxplot() +
+  facet_wrap(Time~metabolite) 
+```
+
+
+#### Exercise vs. Sedentary
+
+Two exercise groups: exercised and exercise-restricted (sedentary).
+
+##### Tumor
+
+There is one significant metabolite: Quinolinate.
+```{r collapse = TRUE}
+### TUMOR
+
+# make separate dataframe for the tumor tissue
+# df - tumor
+# metabolite list - metabs
+
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod <- aov(area ~ Exercise, data = filter(tumor, metabolite == metabs[i]))
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+   
+}
+
+# pull significant p values into a table
+sigs <- pvals[pvals$pval < 0.05,]
+knitr::kable(sigs, col.names =  c("metabolite", "p value"))
+
+```
+
+
+Since there are only two levels, this is basically a t-test and we do not need a Tukey's post hoc. 
+```{r}
+## make boxplots to illustrate differences
+
+tukdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
+
+ggplot(data = tukdf, aes(x = Exercise, y = area)) +
+  geom_boxplot() +
+  facet_wrap(~metabolite) 
+```
+##### Plasma
+
+```{r}
+
+# get metabolites
+
+# list of metabolites - plasmetab
+
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod1 <- aov(area~ Exercise, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "7"))
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
+  mod2 <- aov(area~ Exercise, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "21"))
+  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
+  mod3 <- aov(area~ Exercise, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "35"))
+  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
+  
+}
+
+sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
+knitr::kable(sigs, col.names =  c("metabolite", "p value D7", "p value D21", "p value D35"))
+
+```
+
+```{r}
+## make boxplots to illustrate differences
+
+tukdf <- plasmaaq[plasmaaq$metabolite %in% sigs$metabolite, ]
+
+ggplot(data = tukdf, aes(x = Exercise, y = area)) +
+  geom_boxplot() +
+  facet_wrap(Time~metabolite) 
+
+```
+
+#### Weight Restricted vs Ad-lib Fed
+
+Two weight groups: energy restricted and ad libitum fed
+
+##### Tumor
+
+
+```{r collapse = TRUE}
+### TUMOR
+
+# make separate dataframe for the tumor tissue
+# df - tumor
+# metabolite list - metabs
+
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod <- aov(area ~ Weight, data = filter(tumor, metabolite == metabs[i]))
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+   
+}
+
+# pull significant p values into a table
+sigs <- pvals[pvals$pval < 0.05,]
+knitr::kable(sigs, col.names =  c("metabolite", "p value"))
+
+```
+
+Since there are only two levels, this is basically a t-test and we do not need a Tukey's post hoc. 
+```{r}
+## make boxplots to illustrate differences
+
+tukdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
+
+ggplot(data = tukdf, aes(x = Weight, y = area)) +
+  geom_boxplot() +
+  facet_wrap(~metabolite) 
+```
+##### Plasma
+
+```{r}
+
+# get metabolites
+
+# list of metabolites - plasmetab
+
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod1 <- aov(area~ Weight, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "7"))
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
+  mod2 <- aov(area~ Weight, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "21"))
+  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
+  mod3 <- aov(area~ Weight, data = filter(plasmaaq, metabolite == plasmetab[i] & Time == "35"))
+  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
+  
+}
+
+sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
+knitr::kable(sigs, col.names =  c("metabolite", "p value D7", "p value D21", "p value D35"))
+
+```
+
+```{r}
+## make boxplots to illustrate differences
+
+tukdf <- plasmaaq[plasmaaq$metabolite %in% sigs$metabolite, ]
+
+ggplot(data = tukdf, aes(x = Weight, y = area)) +
+  geom_boxplot() +
+  facet_wrap(Time~metabolite) 
 ```
 
