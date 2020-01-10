@@ -1,0 +1,130 @@
+---
+title: "Metabolomic Analysis"
+author: "Emily Bean"
+date: "January 10, 2020"
+output:
+  html_document:
+    toc: true
+    theme: united
+---
+
+```{r setup, include=FALSE, warning = FALSE, message = FALSE, collapse = TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+## Overview
+
+This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Connie Rogers lab. 
+
+### General cleaning steps 
+1. Download archived raw .wiff files from Metabolomics Core  
+2. Convert .wiff to .mzML in ProteoWizard 4.0 (MS Convert)  
+3. Peak picking and alignment in MSDIAL (MoNA database for hydrophilic; LipidBlast for lipids)  
+4. Tidy in Excel  
+5. Upload to MetaboAnalyst; quantile normalization, Pareto scaling, and log transformation  
+6. Download normalized data for statistical analysis in R  
+
+### Analysis Steps  
+1. Individual metabolites 
+2. Sample clustering    
+3. Metabolic "community"    
+
+### Pairwise comparisons  
+*All comparisons made for aqueous (hydrophilic) and lipid data*  
+1. Plasma D7 vs D21 vd D35  
+2. 4 treatment groups (2x2 factorial)  
+3. Exercise vs sedentary  
+4. Weight gain vs weight maintenance  
+**Note:** These are _annotated metabolites only_. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.
+
+```{r}
+## Read in all data and load packages
+require(dplyr)
+require(tidyr)
+require(vegan)
+require(ggplot2)
+require(pairwiseAdonis)
+require(ggordiplots)
+
+# read all aqueous data
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE)
+```
+
+## Plasma D7 vs D21 v D35
+
+It's important for downstream analysis to first determine if the plasma metabolome change significantly from day 7, to day 21, to day 35. If there are differences, we will need to keep the days separate for downstream analyses; if not, we can likely lump them all together.  
+
+An ANOVA on each individual metabolite by Time shows that there are multiple metabolites that differ between the times, so when analyzing plasma metabolome we will keep Time as a separate factor.
+
+```{r}
+# create a column for the different days
+
+plasmaaq <- aq %>% 
+  filter(!Label == "tumor") %>% 
+  mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "7",
+    Label %in% "plasmaD21" ~ "21",
+    Label %in% "plasmaD35" ~ "35"
+  ), ordered = TRUE, levels = c("7", "21", "35")))
+
+# are there differences between time points?
+plasmetab <- unique(plasmaaq$metabolite)
+pvals <- data.frame()
+
+for(i in 1:length(plasmetab)) {
+  mod <- aov(area ~ Time, data = filter(plasmaaq, metabolite == plasmetab[i]))
+  pvals[i, "metabolite"] <- plasmetab[i]
+  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+}
+
+# pull significant p values into a table
+sigs <- pvals[pvals$pval < 0.05,]
+knitr::kable(sigs)
+```
+
+## Individual Metabolites 
+
+#### Four treatment groups
+
+The initial analyis is comparing all four treatment groups to each other in the 2x2 factorial style. The code follows this structure for pairwise comparisons with ANOVA:
+
+>This code is a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table. 
+
+##### Tumor tissue 
+There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue. 
+
+```{r collapse = TRUE}
+### TUMOR
+
+# make separate dataframe for the tumor tissue
+tumor <- filter(aq, Label == "tumor")
+metabs <- levels(tumor$metabolite)
+
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod <- aov(area ~ treatmentID, data = filter(tumor, metabolite == metabs[i]))
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+   
+}
+
+# pull significant p values into a table
+sigs <- pvals[pvals$pval < 0.05,]
+knitr::kable(sigs, col.names =  c("metabolite", "p value"))
+
+```
+
+#### Plasma
+
+```{r}
+### PLASMA
+
+# df: plasmaaq
+# list of metabolites: plasmetab
+
+# run the for loop
+# Time is kept separate
+
+```
+

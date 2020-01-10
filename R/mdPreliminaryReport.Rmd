@@ -63,6 +63,8 @@ The lipid metabolites are named based on the organic chemistry and bond order. F
 # table of several example aqueous metabolites
 knitr::kable(unique(lip$lipid)[1:10], col.names = NULL)
 ```
+
+
 **Note:** The ` w/o` refers to lipids that had a good match with MS1 but not MS2. These are still usable but we are not as confident in their annotation as we are with the other lipids.  
 **Another Note:** These are _annotated metabolites only_. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.  
 
@@ -98,13 +100,70 @@ sigs <- pvals[pvals$pval < 0.05,]
 knitr::kable(sigs)
 ```
 
-We know that individual metabolites vary throughout time, and we can also look at the entire metabolite "communitY" with an NMDS. The statistical test is a permutational ANOVA, which can be done in a pair-wise fashion to get p values similar to a Tukey's test.
+A post-hoc Tukey's test shows where the differences lie between days. 
 ```{r}
 
+
+sigdf <- plasmaaq[plasmaaq$metabolite %in% sigs$metabolite, ]
+
+# perform ANOVA again and store Tukey variables
+metabs <- unique(sigdf$metabolite)
+tukeyOut <- data.frame()
+
+for(i in 1:length(metabs)) {
+  # re-run the ANOVA
+  mod <- aov(area ~ Time, data = filter(sigdf, metabolite == metabs[i]))
+  # perform Tukey post-hoc test and store significant p values
+  tuk <- TukeyHSD(mod)
+  tukmat <- tuk$Time
+  sig <- data.frame(p = round(tukmat[,"p adj"], 4),
+                    contrast = dimnames(tukmat)[[1]])
+  
+  
+  ## workaround for if Tukey does not show significance but ANOVA does:
+  if(any(sig$p < 0.05)) {
+    
+    sigsdf <- sig[sig$p < 0.05, ] 
+    sigsdf$metabolite <- metabs[i]
+  } else {
+    
+    sigsdf <- data.frame(p = "error",
+                       contrast = "error",
+                       metabolite = metabs[i])
+    
+  }
+  
+  
+  # append to outDF
+  tukeyOut <- rbind(tukeyOut, sigsdf)
+}
+
+
+
+rownames(tukeyOut) <- NULL
+tukeyOut <- tukeyOut[!tukeyOut$p %in% "error",]
+
+knitr::kable(tukeyOut)
 ```
 
-The plot does not intuitively show any differences between the ellipses; remember, this is only a visual tool. 
+We can also visualize the difference by using boxplots
+
 ```{r}
+## make boxplots to illustrate differences
+
+tukdf <- plasmaaq[plasmaaq$metabolite %in% tukeyOut$metabolite, ]
+
+ggplot(data = tukdf, aes(x = Time, y = area)) +
+  geom_boxplot() +
+  facet_wrap(~metabolite) +
+  ggtitle("Aqueous plasma significant metabolites")
+```
+
+
+
+
+The plot does not intuitively show any differences between the ellipses; remember, this is only a visual tool. 
+```{#r}
 # pull NMDS coordinates
 plasmaH$NMDS1 <- ord$points[,1]
 plasmaH$NMDS2 <- ord$points[,2]
@@ -173,7 +232,90 @@ knitr::kable(sigs, col.names =  c("metabolite", "p value"))
 
 ##### Tumor tissue - lipids
 
+There are many more annotated lipids than there are aqueous metabolites, so it may not be as productive to analyze each individual lipid. For initial analysis, we will look at each annotated lipid and see what may be important for later analysis in functional groups.
+```{r collapse = TRUE}
+### TUMOR
 
+# make separate dataframe for the tumor tissue
+tumor <- filter(lip, tissue.type == "tumor")
+metabs <- levels(tumor$lipid)
+
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod <- aov(log.area ~ treatmentID, data = filter(tumor, lipid == metabs[i]))
+  pvals[i, "lipid"] <- metabs[i]
+  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
+   
+}
+
+# pull significant p values into a table
+sigs <- pvals[pvals$pval < 0.05,]
+#knitr::kable(sigs, col.names =  c("metabolite", "p value"))
+
+```
+
+##### Plasma -- aqueous
+
+Since we clearly saw that there is a difference in the plasma aqueous metabolites between days (above), we will keep Time as a separate factor moving forward.
+Three separate ANOVAs; one for each time point.
+```{r}
+
+# get metabolites
+
+metabs <- levels(plasmaaq$metabolite)
+
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(metabs)) {
+  mod1 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == metabs[i] & Time == "7"))
+  pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
+  mod2 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == metabs[i] & Time == "21"))
+  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
+  mod3 <- aov(area~ treatmentID, data = filter(plasmaaq, metabolite == metabs[i] & Time == "35"))
+  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
+  
+}
+
+sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
+
+
+```
+
+##### Plasma --lipids
+
+
+```{r}
+# make separate dataframe for lipid
+plasmalip <- lip %>% 
+  filter(tissue.type == "plasma") %>% 
+  mutate(SampleName = as.character(SampleName))
+
+for(i in 1:nrow(plasmalip)) {
+  plasmalip[i, "Time"] <- strsplit(plasmalip$SampleName[i], "_")[[1]][1]
+}
+
+lipids <- unique(plasmalip$lipid)
+pvals <- data.frame()
+
+# run the for loop
+for(i in 1:length(lipids)) {
+  mod1 <- aov(log.area~ treatmentID, data = filter(plasmalip, lipid == lipids[i] & Time == "D7"))
+  pvals[i, "lipid"] <- lipids[i]
+  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
+  mod2 <- aov(log.area~ treatmentID, data = filter(plasmalip, lipid == lipids[i] & Time == "D21"))
+  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
+  mod3 <- aov(log.area~ treatmentID, data = filter(plasmalip, lipid == lipids[i] & Time == "D35"))
+  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
+  
+}
+
+sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
+
+```
 
 ## Community Analysis
 

@@ -13,7 +13,7 @@
 
 <meta name="author" content="Emily Bean" />
 
-<meta name="date" content="2019-12-19" />
+<meta name="date" content="2020-01-10" />
 
 <title>Preliminary Metabolomics Analysis</title>
 
@@ -105,7 +105,7 @@ a.sourceLine {
 <header>
 <h1 class="title toc-ignore">Preliminary Metabolomics Analysis</h1>
 <h3 class="author">Emily Bean</h3>
-<h3 class="date">2019-12-19</h3>
+<h3 class="date">2020-01-10</h3>
 </header>
 
 <hr>
@@ -137,12 +137,14 @@ a.sourceLine {
 <span class="kw">require</span>(tidyr)
 <span class="kw">require</span>(vegan)
 <span class="kw">require</span>(ggplot2)
+<span class="kw">require</span>(pairwiseAdonis)
+<span class="kw">require</span>(ggordiplots)
 
 <span class="co"># read all aqueous data</span>
-aq &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="st">&quot;F:/Metabolomics/allAqueousCleaned.txt&quot;</span>, <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">TRUE</span>)
+aq &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="st">&quot;https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt&quot;</span>, <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">TRUE</span>)
 
 <span class="co"># read all lipids data</span>
-lip &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="st">&quot;F:/Metabolomics/allLipidsCleaned.txt&quot;</span>, <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">TRUE</span>)</code></pre></div>
+lip &lt;-<span class="st"> </span><span class="kw">read.table</span>(<span class="st">&quot;https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allLipidsCleaned.txt&quot;</span>, <span class="dt">header =</span> <span class="ot">TRUE</span>, <span class="dt">stringsAsFactors =</span> <span class="ot">TRUE</span>)</code></pre></div>
 <p><em>Summary of the data</em><br />
 There are 136 unique metabolites in the aqueous dataset. There are 2434 unique lipids in the lipid dataset. The aqueous metabolites are named, for example:</p>
 <table>
@@ -183,62 +185,66 @@ There are 136 unique metabolites in the aqueous dataset. There are 2434 unique l
 <table>
 <tbody>
 <tr class="odd">
-<td align="left">w/o MS2:PG 41:6e; PG 15:0e/26:6; [M-H]-</td>
+<td align="left">FAHFA 23:3; FAHFA 5:0/18:3; [M-H]-</td>
 </tr>
 <tr class="even">
-<td align="left">w/o MS2:PG 41:7e; PG 15:0e/26:7; [M-H]-</td>
+<td align="left">FAHFA 23:5; FAHFA 20:5/3:0; [M-H]-</td>
 </tr>
 <tr class="odd">
-<td align="left">w/o MS2:PG 42:11e; PG 24:6e/18:5; [M-H]-</td>
+<td align="left">FAHFA 24:2; FAHFA 18:2/6:0; [M-H]-</td>
 </tr>
 <tr class="even">
-<td align="left">w/o MS2:PG 42:6; PG 24:1-18:5; [M-H]-</td>
+<td align="left">Cer-AS d35:1+O; Cer-AS d17:1/18:0+O; [M+HCOO]-</td>
 </tr>
 <tr class="odd">
-<td align="left">w/o MS2:PE 50:14; PE 18:5-32:9; [M-H]-</td>
+<td align="left">Cer-BS d43:1+O; Cer-BS d17:1/26:0+O; [M+HCOO]-</td>
 </tr>
 <tr class="even">
-<td align="left">w/o MS2:PE-Cer d28:4; PE-Cer d12:1/16:3; [M-H]-</td>
+<td align="left">Cer-AS d33:1+O; Cer-AS d17:1/16:0+O; [M+HCOO]-</td>
 </tr>
 <tr class="odd">
-<td align="left">w/o MS2:PG 41:7e; PG 19:2e/22:5; [M-H]-</td>
+<td align="left">Cer-AS d34:1+O; Cer-AS d18:1/16:0+O; [M+HCOO]-</td>
 </tr>
 <tr class="even">
-<td align="left">w/o MS2:PG 41:8e; PG 15:1e/26:7; [M-H]-</td>
+<td align="left">Cer-ADS d43:1+O; Cer-ADS d16:0/27:1+O; [M-H]-</td>
 </tr>
 <tr class="odd">
-<td align="left">w/o MS2:PE-Cer d39:5+O; PE-Cer d23:3/16:2+O; [M-H]-</td>
+<td align="left">Cer-AP t42:1+O; Cer-AP t26:1/16:0+O; [M+HCOO]-</td>
 </tr>
 <tr class="even">
-<td align="left">w/o MS2:PE-Cer d40:1; PE-Cer d14:1/26:0; [M-H]-</td>
+<td align="left">Cer-AS d27:3+O; Cer-AS d15:2/12:1+O; [M-H]-</td>
 </tr>
 </tbody>
 </table>
 <p><strong>Note:</strong> The <code>w/o</code> refers to lipids that had a good match with MS1 but not MS2. These are still usable but we are not as confident in their annotation as we are with the other lipids.<br />
 <strong>Another Note:</strong> These are <em>annotated metabolites only</em>. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.</p>
 </div>
-<div id="individual-metabolites" class="section level2">
-<h2>Individual Metabolites</h2>
-<p>This is an example of pairwise comparisons for individual aqueous metabolites. The code below runs a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a “for loop” for all 136 aqueous metabolites, and stores the p values in a table.<br />
-There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">### TUMOR
+<div id="plasma-aqueous-metabolites-through-time" class="section level2">
+<h2>Plasma aqueous metabolites through time</h2>
+<p>It’s important for downstream analysis to first determine if the plasma metabolome change significantly from day 7, to day 21, to day 35. If there are differences, we will need to keep the days separate for downstream analyses; if not, we can likely lump them all together.</p>
+<p>An ANOVA on each individual metabolite by Time shows that there are several metabolites that differ between the times, so when analyzing plasma metabolome we will keep Time as a separate factor.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># create a column for the different days</span>
 
-<span class="co"># make separate dataframe for the tumor tissue</span>
-tumor &lt;-<span class="st"> </span><span class="kw">filter</span>(aq, Label <span class="op">==</span><span class="st"> &quot;tumor&quot;</span>)
-metabs &lt;-<span class="st"> </span><span class="kw">levels</span>(tumor<span class="op">$</span>metabolite)
+plasmaaq &lt;-<span class="st"> </span>aq <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">filter</span>(<span class="op">!</span>Label <span class="op">==</span><span class="st"> &quot;tumor&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">Time =</span> <span class="kw">factor</span>(<span class="kw">case_when</span>(
+    Label <span class="op">%in%</span><span class="st"> &quot;plasmaD7&quot;</span> <span class="op">~</span><span class="st"> &quot;7&quot;</span>,
+    Label <span class="op">%in%</span><span class="st"> &quot;plasmaD21&quot;</span> <span class="op">~</span><span class="st"> &quot;21&quot;</span>,
+    Label <span class="op">%in%</span><span class="st"> &quot;plasmaD35&quot;</span> <span class="op">~</span><span class="st"> &quot;35&quot;</span>
+  ), <span class="dt">ordered =</span> <span class="ot">TRUE</span>, <span class="dt">levels =</span> <span class="kw">c</span>(<span class="st">&quot;7&quot;</span>, <span class="st">&quot;21&quot;</span>, <span class="st">&quot;35&quot;</span>)))
 
-pvalsTumor &lt;-<span class="st"> </span><span class="kw">data.frame</span>()
+<span class="co"># are there differences between time points?</span>
+plasmetab &lt;-<span class="st"> </span><span class="kw">unique</span>(plasmaaq<span class="op">$</span>metabolite)
+pvals &lt;-<span class="st"> </span><span class="kw">data.frame</span>()
 
-<span class="co"># run the for loop</span>
-<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(metabs)) {
-  mod &lt;-<span class="st"> </span><span class="kw">aov</span>(area <span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(tumor, metabolite <span class="op">==</span><span class="st"> </span>metabs[i]))
-  pvalsTumor[i, <span class="st">&quot;metabolite&quot;</span>] &lt;-<span class="st"> </span>metabs[i]
-  pvalsTumor[i, <span class="st">&quot;pval&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
-   
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(plasmetab)) {
+  mod &lt;-<span class="st"> </span><span class="kw">aov</span>(area <span class="op">~</span><span class="st"> </span>Time, <span class="dt">data =</span> <span class="kw">filter</span>(plasmaaq, metabolite <span class="op">==</span><span class="st"> </span>plasmetab[i]))
+  pvals[i, <span class="st">&quot;metabolite&quot;</span>] &lt;-<span class="st"> </span>plasmetab[i]
+  pvals[i, <span class="st">&quot;pval&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
 }
 
 <span class="co"># pull significant p values into a table</span>
-sigs &lt;-<span class="st"> </span>pvalsTumor[pvalsTumor<span class="op">$</span>pval <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>,]
+sigs &lt;-<span class="st"> </span>pvals[pvals<span class="op">$</span>pval <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>,]
 knitr<span class="op">::</span><span class="kw">kable</span>(sigs)</code></pre></div>
 <table>
 <thead>
@@ -246,6 +252,463 @@ knitr<span class="op">::</span><span class="kw">kable</span>(sigs)</code></pre><
 <th></th>
 <th align="left">metabolite</th>
 <th align="right">pval</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td align="left">Pyruvate</td>
+<td align="right">0.0163</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td align="left">Alanine.Sacrosine</td>
+<td align="right">0.0001</td>
+</tr>
+<tr class="odd">
+<td>6</td>
+<td align="left">X3.Hydroxybutyric.acid</td>
+<td align="right">0.0197</td>
+</tr>
+<tr class="even">
+<td>7</td>
+<td align="left">Serine</td>
+<td align="right">0.0098</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td align="left">Uracil</td>
+<td align="right">0.0242</td>
+</tr>
+<tr class="even">
+<td>11</td>
+<td align="left">Maleic.acid</td>
+<td align="right">0.0440</td>
+</tr>
+<tr class="odd">
+<td>17</td>
+<td align="left">Threonine.Homoserine</td>
+<td align="right">0.0389</td>
+</tr>
+<tr class="even">
+<td>19</td>
+<td align="left">Nicotinate</td>
+<td align="right">0.0205</td>
+</tr>
+<tr class="odd">
+<td>20</td>
+<td align="left">Taurine</td>
+<td align="right">0.0122</td>
+</tr>
+<tr class="even">
+<td>22</td>
+<td align="left">Pipecolic.Acid</td>
+<td align="right">0.0367</td>
+</tr>
+<tr class="odd">
+<td>23</td>
+<td align="left">Citraconic.acid</td>
+<td align="right">0.0144</td>
+</tr>
+<tr class="even">
+<td>26</td>
+<td align="left">N.Acetyl.L.alanine</td>
+<td align="right">0.0059</td>
+</tr>
+<tr class="odd">
+<td>28</td>
+<td align="left">Asparagine</td>
+<td align="right">0.0048</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td align="left">Homocysteine.Methylcysteine</td>
+<td align="right">0.0424</td>
+</tr>
+<tr class="odd">
+<td>33</td>
+<td align="left">Anthranilate</td>
+<td align="right">0.0188</td>
+</tr>
+<tr class="even">
+<td>39</td>
+<td align="left">Methionine</td>
+<td align="right">0.0056</td>
+</tr>
+<tr class="odd">
+<td>46</td>
+<td align="left">X2.Aminooctanoic.acid</td>
+<td align="right">0.0108</td>
+</tr>
+<tr class="even">
+<td>56</td>
+<td align="left">sn.Glycerol.3.phosphate</td>
+<td align="right">0.0249</td>
+</tr>
+<tr class="odd">
+<td>68</td>
+<td align="left">Glucose</td>
+<td align="right">0.0445</td>
+</tr>
+<tr class="even">
+<td>83</td>
+<td align="left">Pantothenate</td>
+<td align="right">0.0008</td>
+</tr>
+<tr class="odd">
+<td>85</td>
+<td align="left">Deoxyuridine</td>
+<td align="right">0.0030</td>
+</tr>
+<tr class="even">
+<td>86</td>
+<td align="left">Ribulose.5.phosphate</td>
+<td align="right">0.0446</td>
+</tr>
+<tr class="odd">
+<td>88</td>
+<td align="left">Pro.Asp..PD.</td>
+<td align="right">0.0124</td>
+</tr>
+<tr class="even">
+<td>90</td>
+<td align="left">Uridine</td>
+<td align="right">0.0239</td>
+</tr>
+<tr class="odd">
+<td>99</td>
+<td align="left">Xanthosine</td>
+<td align="right">0.0005</td>
+</tr>
+<tr class="even">
+<td>113</td>
+<td align="left">AMP</td>
+<td align="right">0.0450</td>
+</tr>
+<tr class="odd">
+<td>127</td>
+<td align="left">FMN</td>
+<td align="right">0.0106</td>
+</tr>
+</tbody>
+</table>
+<p>A post-hoc Tukey’s test shows where the differences lie between days.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">sigdf &lt;-<span class="st"> </span>plasmaaq[plasmaaq<span class="op">$</span>metabolite <span class="op">%in%</span><span class="st"> </span>sigs<span class="op">$</span>metabolite, ]
+
+<span class="co"># perform ANOVA again and store Tukey variables</span>
+metabs &lt;-<span class="st"> </span><span class="kw">unique</span>(sigdf<span class="op">$</span>metabolite)
+tukeyOut &lt;-<span class="st"> </span><span class="kw">data.frame</span>()
+
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(metabs)) {
+  <span class="co"># re-run the ANOVA</span>
+  mod &lt;-<span class="st"> </span><span class="kw">aov</span>(area <span class="op">~</span><span class="st"> </span>Time, <span class="dt">data =</span> <span class="kw">filter</span>(sigdf, metabolite <span class="op">==</span><span class="st"> </span>metabs[i]))
+  <span class="co"># perform Tukey post-hoc test and store significant p values</span>
+  tuk &lt;-<span class="st"> </span><span class="kw">TukeyHSD</span>(mod)
+  tukmat &lt;-<span class="st"> </span>tuk<span class="op">$</span>Time
+  sig &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">p =</span> <span class="kw">round</span>(tukmat[,<span class="st">&quot;p adj&quot;</span>], <span class="dv">4</span>),
+                    <span class="dt">contrast =</span> <span class="kw">dimnames</span>(tukmat)[[<span class="dv">1</span>]])
+  
+  
+  ## workaround for if Tukey does not show significance but ANOVA does:
+  <span class="cf">if</span>(<span class="kw">any</span>(sig<span class="op">$</span>p <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>)) {
+    
+    sigsdf &lt;-<span class="st"> </span>sig[sig<span class="op">$</span>p <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>, ] 
+    sigsdf<span class="op">$</span>metabolite &lt;-<span class="st"> </span>metabs[i]
+  } <span class="cf">else</span> {
+    
+    sigsdf &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="dt">p =</span> <span class="st">&quot;error&quot;</span>,
+                       <span class="dt">contrast =</span> <span class="st">&quot;error&quot;</span>,
+                       <span class="dt">metabolite =</span> metabs[i])
+    
+  }
+  
+  
+  <span class="co"># append to outDF</span>
+  tukeyOut &lt;-<span class="st"> </span><span class="kw">rbind</span>(tukeyOut, sigsdf)
+}
+
+
+
+<span class="kw">rownames</span>(tukeyOut) &lt;-<span class="st"> </span><span class="ot">NULL</span>
+tukeyOut &lt;-<span class="st"> </span>tukeyOut[<span class="op">!</span>tukeyOut<span class="op">$</span>p <span class="op">%in%</span><span class="st"> &quot;error&quot;</span>,]
+
+knitr<span class="op">::</span><span class="kw">kable</span>(tukeyOut)</code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">p</th>
+<th align="left">contrast</th>
+<th align="left">metabolite</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td align="left">0.0187</td>
+<td align="left">35-21</td>
+<td align="left">Pyruvate</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td align="left">1e-04</td>
+<td align="left">35-7</td>
+<td align="left">Alanine.Sacrosine</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td align="left">0.0131</td>
+<td align="left">35-21</td>
+<td align="left">Alanine.Sacrosine</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td align="left">0.0255</td>
+<td align="left">35-7</td>
+<td align="left">X3.Hydroxybutyric.acid</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td align="left">0.0068</td>
+<td align="left">35-7</td>
+<td align="left">Serine</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td align="left">0.0335</td>
+<td align="left">35-21</td>
+<td align="left">Uracil</td>
+</tr>
+<tr class="odd">
+<td>8</td>
+<td align="left">0.0298</td>
+<td align="left">35-7</td>
+<td align="left">Threonine.Homoserine</td>
+</tr>
+<tr class="even">
+<td>9</td>
+<td align="left">0.0264</td>
+<td align="left">21-7</td>
+<td align="left">Nicotinate</td>
+</tr>
+<tr class="odd">
+<td>10</td>
+<td align="left">0.0177</td>
+<td align="left">35-21</td>
+<td align="left">Taurine</td>
+</tr>
+<tr class="even">
+<td>12</td>
+<td align="left">0.0311</td>
+<td align="left">35-7</td>
+<td align="left">Citraconic.acid</td>
+</tr>
+<tr class="odd">
+<td>13</td>
+<td align="left">0.0353</td>
+<td align="left">35-21</td>
+<td align="left">Citraconic.acid</td>
+</tr>
+<tr class="even">
+<td>14</td>
+<td align="left">0.0069</td>
+<td align="left">35-7</td>
+<td align="left">N.Acetyl.L.alanine</td>
+</tr>
+<tr class="odd">
+<td>15</td>
+<td align="left">0.0483</td>
+<td align="left">35-21</td>
+<td align="left">N.Acetyl.L.alanine</td>
+</tr>
+<tr class="even">
+<td>16</td>
+<td align="left">0.0032</td>
+<td align="left">35-7</td>
+<td align="left">Asparagine</td>
+</tr>
+<tr class="odd">
+<td>17</td>
+<td align="left">0.0353</td>
+<td align="left">35-7</td>
+<td align="left">Homocysteine.Methylcysteine</td>
+</tr>
+<tr class="even">
+<td>18</td>
+<td align="left">0.0431</td>
+<td align="left">35-7</td>
+<td align="left">Anthranilate</td>
+</tr>
+<tr class="odd">
+<td>19</td>
+<td align="left">0.0393</td>
+<td align="left">35-21</td>
+<td align="left">Anthranilate</td>
+</tr>
+<tr class="even">
+<td>20</td>
+<td align="left">0.0099</td>
+<td align="left">35-7</td>
+<td align="left">Methionine</td>
+</tr>
+<tr class="odd">
+<td>21</td>
+<td align="left">0.0257</td>
+<td align="left">35-21</td>
+<td align="left">Methionine</td>
+</tr>
+<tr class="even">
+<td>22</td>
+<td align="left">0.0194</td>
+<td align="left">35-7</td>
+<td align="left">X2.Aminooctanoic.acid</td>
+</tr>
+<tr class="odd">
+<td>23</td>
+<td align="left">0.0369</td>
+<td align="left">35-21</td>
+<td align="left">X2.Aminooctanoic.acid</td>
+</tr>
+<tr class="even">
+<td>24</td>
+<td align="left">0.0201</td>
+<td align="left">35-21</td>
+<td align="left">sn.Glycerol.3.phosphate</td>
+</tr>
+<tr class="odd">
+<td>26</td>
+<td align="left">0.0014</td>
+<td align="left">35-7</td>
+<td align="left">Pantothenate</td>
+</tr>
+<tr class="even">
+<td>27</td>
+<td align="left">0.0084</td>
+<td align="left">35-21</td>
+<td align="left">Pantothenate</td>
+</tr>
+<tr class="odd">
+<td>28</td>
+<td align="left">0.0026</td>
+<td align="left">35-7</td>
+<td align="left">Deoxyuridine</td>
+</tr>
+<tr class="even">
+<td>30</td>
+<td align="left">0.0116</td>
+<td align="left">35-7</td>
+<td align="left">Pro.Asp..PD.</td>
+</tr>
+<tr class="odd">
+<td>31</td>
+<td align="left">0.0249</td>
+<td align="left">35-7</td>
+<td align="left">Uridine</td>
+</tr>
+<tr class="even">
+<td>32</td>
+<td align="left">3e-04</td>
+<td align="left">21-7</td>
+<td align="left">Xanthosine</td>
+</tr>
+<tr class="odd">
+<td>33</td>
+<td align="left">0.0453</td>
+<td align="left">35-7</td>
+<td align="left">AMP</td>
+</tr>
+<tr class="even">
+<td>34</td>
+<td align="left">0.0128</td>
+<td align="left">21-7</td>
+<td align="left">FMN</td>
+</tr>
+<tr class="odd">
+<td>35</td>
+<td align="left">0.0477</td>
+<td align="left">35-7</td>
+<td align="left">FMN</td>
+</tr>
+</tbody>
+</table>
+<p>We can also visualize the difference by using boxplots</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## make boxplots to illustrate differences
+
+tukdf &lt;-<span class="st"> </span>plasmaaq[plasmaaq<span class="op">$</span>metabolite <span class="op">%in%</span><span class="st"> </span>tukeyOut<span class="op">$</span>metabolite, ]
+
+<span class="kw">ggplot</span>(<span class="dt">data =</span> tukdf, <span class="kw">aes</span>(<span class="dt">x =</span> Time, <span class="dt">y =</span> area)) <span class="op">+</span>
+<span class="st">  </span><span class="kw">geom_boxplot</span>() <span class="op">+</span>
+<span class="st">  </span><span class="kw">facet_wrap</span>(<span class="op">~</span>metabolite) <span class="op">+</span>
+<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;Aqueous plasma significant metabolites&quot;</span>)</code></pre></div>
+<p><img src="data:image/png;base64,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" /><!-- --></p>
+<p>The plot does not intuitively show any differences between the ellipses; remember, this is only a visual tool.</p>
+<pre id="r"><code># pull NMDS coordinates
+plasmaH$NMDS1 &lt;- ord$points[,1]
+plasmaH$NMDS2 &lt;- ord$points[,2]
+
+# IF ANY EFT OBJECTS ARE SIGNIFICANT:
+# pull significant envfit objects to plots
+#species.scores &lt;- data.frame(eft$vectors$arrows[eft$vectors$pvals &lt; 0.05,])
+#species.scores$species &lt;- row.names(eft$vectors$arrows[eft$vectors$pvals &lt; 0.05,])
+
+# save gg_ordiplot object to get ellipse values
+plot &lt;-  gg_ordiplot(ord, groups = plasmaH$Time, label = FALSE, plot = FALSE)
+# get ellipse coordinates
+df_ell &lt;- plot$df_ellipse
+# get label coordinates for ellipse centers
+NMDS.mean &lt;- plot$df_mean.ord
+# pull NMDS coordinates
+ord.data &lt;- plot$df_ord 
+
+## create in ggplot2
+ggplot(data = plasmaH, aes(x = NMDS1, y = NMDS2)) +
+  geom_path(data = df_ell, aes(x = x, y = y, color = Group), show.legend = FALSE) +
+  geom_point(aes(x = NMDS1, y = NMDS2, color = Time), size = 1) +
+  annotate(&quot;text&quot;,x = NMDS.mean$x, y = NMDS.mean$y,label=NMDS.mean$Group) +
+ # geom_segment(data = species.scores,
+  #             aes(x = 0, xend = NMDS1, y = 0, yend = NMDS2), colour = &quot;grey&quot;) +
+  #geom_text(data = species.scores, 
+   #         aes(x = NMDS1, y = NMDS2, label=species),
+    #        size = 3) +
+  ggtitle(&quot;Plasma metabolome by Time&quot;) +
+  theme_bw()</code></pre>
+</div>
+<div id="individual-metabolites" class="section level2">
+<h2>Individual Metabolites</h2>
+<div id="four-treatment-groups" class="section level4">
+<h4>Four treatment groups</h4>
+<p>The initial analyis is comparing all four treatment groups to each other in the 2x2 factorial style. The code follows this structure for pairwise comparisons with ANOVA:</p>
+<blockquote>
+<p>This code is a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a “for loop” for all 136 aqueous metabolites, and stores the p values in a table.</p>
+</blockquote>
+<div id="tumor-tissue---aqueous" class="section level5">
+<h5>Tumor tissue - aqueous</h5>
+<p>There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">### TUMOR
+
+<span class="co"># make separate dataframe for the tumor tissue</span>
+tumor &lt;-<span class="st"> </span><span class="kw">filter</span>(aq, Label <span class="op">==</span><span class="st"> &quot;tumor&quot;</span>)
+metabs &lt;-<span class="st"> </span><span class="kw">levels</span>(tumor<span class="op">$</span>metabolite)
+
+pvals &lt;-<span class="st"> </span><span class="kw">data.frame</span>()
+
+<span class="co"># run the for loop</span>
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(metabs)) {
+  mod &lt;-<span class="st"> </span><span class="kw">aov</span>(area <span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(tumor, metabolite <span class="op">==</span><span class="st"> </span>metabs[i]))
+  pvals[i, <span class="st">&quot;metabolite&quot;</span>] &lt;-<span class="st"> </span>metabs[i]
+  pvals[i, <span class="st">&quot;pval&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+   
+}
+
+<span class="co"># pull significant p values into a table</span>
+sigs &lt;-<span class="st"> </span>pvals[pvals<span class="op">$</span>pval <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>,]
+knitr<span class="op">::</span><span class="kw">kable</span>(sigs, <span class="dt">col.names =</span>  <span class="kw">c</span>(<span class="st">&quot;metabolite&quot;</span>, <span class="st">&quot;p value&quot;</span>))</code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th></th>
+<th align="left">metabolite</th>
+<th align="right">p value</th>
 </tr>
 </thead>
 <tbody>
@@ -271,174 +734,90 @@ knitr<span class="op">::</span><span class="kw">kable</span>(sigs)</code></pre><
 </tr>
 </tbody>
 </table>
-<p>To determine which treatment groups vary, we can do a Tukey’s post hoc test on each of the four significant metabolites. To illustrate, we will do a post hoc test on our first significant metabolite, Acetyl.aspartate. This shows that the only significant difference is between SED-ER and EX-AL.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># make a new dataframe with only the significant metabolites</span>
-sigMs &lt;-<span class="st"> </span>tumor[tumor<span class="op">$</span>metabolite <span class="op">%in%</span><span class="st"> </span>sigs<span class="op">$</span>metabolite, ]
+</div>
+<div id="tumor-tissue---lipids" class="section level5">
+<h5>Tumor tissue - lipids</h5>
+<p>There are many more annotated lipids than there are aqueous metabolites, so it may not be as productive to analyze each individual lipid. For initial analysis, we will look at each annotated lipid and see what may be important for later analysis in functional groups.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">### TUMOR
 
-<span class="co"># perform a Tukey test with the ANOVA included manually</span>
-<span class="kw">TukeyHSD</span>(
-  <span class="kw">aov</span>(area <span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(sigMs, metabolite <span class="op">==</span><span class="st"> </span>sigs<span class="op">$</span>metabolite[<span class="dv">1</span>]))
-)</code></pre></div>
-<pre><code>##   Tukey multiple comparisons of means
-##     95% family-wise confidence level
-## 
-## Fit: aov(formula = area ~ treatmentID, data = filter(sigMs, metabolite == sigs$metabolite[1]))
-## 
-## $treatmentID
-##                     diff        lwr      upr     p adj
-## EX_ER-EX_AL    1.0038249 -0.1315448 2.139195 0.0935311
-## SED_AL-EX_AL   0.7696417 -0.3228684 1.862152 0.2257141
-## SED_ER-EX_AL   1.3497777  0.2572677 2.442288 0.0129020
-## SED_AL-EX_ER  -0.2341833 -1.2590486 0.790682 0.9142636
-## SED_ER-EX_ER   0.3459528 -0.6789125 1.370818 0.7736176
-## SED_ER-SED_AL  0.5801361 -0.3970346 1.557307 0.3600265</code></pre>
+<span class="co"># make separate dataframe for the tumor tissue</span>
+tumor &lt;-<span class="st"> </span><span class="kw">filter</span>(lip, tissue.type <span class="op">==</span><span class="st"> &quot;tumor&quot;</span>)
+metabs &lt;-<span class="st"> </span><span class="kw">levels</span>(tumor<span class="op">$</span>lipid)
+
+pvals &lt;-<span class="st"> </span><span class="kw">data.frame</span>()
+
+<span class="co"># run the for loop</span>
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(metabs)) {
+  mod &lt;-<span class="st"> </span><span class="kw">aov</span>(log.area <span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(tumor, lipid <span class="op">==</span><span class="st"> </span>metabs[i]))
+  pvals[i, <span class="st">&quot;lipid&quot;</span>] &lt;-<span class="st"> </span>metabs[i]
+  pvals[i, <span class="st">&quot;pval&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+   
+}
+
+<span class="co"># pull significant p values into a table</span>
+sigs &lt;-<span class="st"> </span>pvals[pvals<span class="op">$</span>pval <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>,]
+<span class="co">#knitr::kable(sigs, col.names =  c(&quot;metabolite&quot;, &quot;p value&quot;))</span></code></pre></div>
+</div>
+<div id="plasma-aqueous" class="section level5">
+<h5>Plasma – aqueous</h5>
+<p>Since we clearly saw that there is a difference in the plasma aqueous metabolites between days (above), we will keep Time as a separate factor moving forward. Three separate ANOVAs; one for each time point.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># get metabolites</span>
+
+metabs &lt;-<span class="st"> </span><span class="kw">levels</span>(plasmaaq<span class="op">$</span>metabolite)
+
+pvals &lt;-<span class="st"> </span><span class="kw">data.frame</span>()
+
+<span class="co"># run the for loop</span>
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(metabs)) {
+  mod1 &lt;-<span class="st"> </span><span class="kw">aov</span>(area<span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(plasmaaq, metabolite <span class="op">==</span><span class="st"> </span>metabs[i] <span class="op">&amp;</span><span class="st"> </span>Time <span class="op">==</span><span class="st"> &quot;7&quot;</span>))
+  pvals[i, <span class="st">&quot;metabolite&quot;</span>] &lt;-<span class="st"> </span>metabs[i]
+  pvals[i, <span class="st">&quot;pvalD7&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod1)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+  mod2 &lt;-<span class="st"> </span><span class="kw">aov</span>(area<span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(plasmaaq, metabolite <span class="op">==</span><span class="st"> </span>metabs[i] <span class="op">&amp;</span><span class="st"> </span>Time <span class="op">==</span><span class="st"> &quot;21&quot;</span>))
+  pvals[i, <span class="st">&quot;pvalD21&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod2)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+  mod3 &lt;-<span class="st"> </span><span class="kw">aov</span>(area<span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(plasmaaq, metabolite <span class="op">==</span><span class="st"> </span>metabs[i] <span class="op">&amp;</span><span class="st"> </span>Time <span class="op">==</span><span class="st"> &quot;35&quot;</span>))
+  pvals[i, <span class="st">&quot;pvalD35&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod3)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+  
+}
+
+sigs &lt;-<span class="st"> </span>pvals[pvals[,<span class="dv">2</span><span class="op">:</span><span class="dv">4</span>] <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>, ] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">na.omit</span>()</code></pre></div>
+</div>
+<div id="plasma-lipids" class="section level5">
+<h5>Plasma –lipids</h5>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="co"># make separate dataframe for lipid</span>
+plasmalip &lt;-<span class="st"> </span>lip <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">filter</span>(tissue.type <span class="op">==</span><span class="st"> &quot;plasma&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
+<span class="st">  </span><span class="kw">mutate</span>(<span class="dt">SampleName =</span> <span class="kw">as.character</span>(SampleName))
+
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">nrow</span>(plasmalip)) {
+  plasmalip[i, <span class="st">&quot;Time&quot;</span>] &lt;-<span class="st"> </span><span class="kw">strsplit</span>(plasmalip<span class="op">$</span>SampleName[i], <span class="st">&quot;_&quot;</span>)[[<span class="dv">1</span>]][<span class="dv">1</span>]
+}
+
+lipids &lt;-<span class="st"> </span><span class="kw">unique</span>(plasmalip<span class="op">$</span>lipid)
+pvals &lt;-<span class="st"> </span><span class="kw">data.frame</span>()
+
+<span class="co"># run the for loop</span>
+<span class="cf">for</span>(i <span class="cf">in</span> <span class="dv">1</span><span class="op">:</span><span class="kw">length</span>(lipids)) {
+  mod1 &lt;-<span class="st"> </span><span class="kw">aov</span>(log.area<span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(plasmalip, lipid <span class="op">==</span><span class="st"> </span>lipids[i] <span class="op">&amp;</span><span class="st"> </span>Time <span class="op">==</span><span class="st"> &quot;D7&quot;</span>))
+  pvals[i, <span class="st">&quot;lipid&quot;</span>] &lt;-<span class="st"> </span>lipids[i]
+  pvals[i, <span class="st">&quot;pvalD7&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod1)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+  mod2 &lt;-<span class="st"> </span><span class="kw">aov</span>(log.area<span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(plasmalip, lipid <span class="op">==</span><span class="st"> </span>lipids[i] <span class="op">&amp;</span><span class="st"> </span>Time <span class="op">==</span><span class="st"> &quot;D21&quot;</span>))
+  pvals[i, <span class="st">&quot;pvalD21&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod2)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+  mod3 &lt;-<span class="st"> </span><span class="kw">aov</span>(log.area<span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> <span class="kw">filter</span>(plasmalip, lipid <span class="op">==</span><span class="st"> </span>lipids[i] <span class="op">&amp;</span><span class="st"> </span>Time <span class="op">==</span><span class="st"> &quot;D35&quot;</span>))
+  pvals[i, <span class="st">&quot;pvalD35&quot;</span>] &lt;-<span class="st"> </span><span class="kw">round</span>(<span class="kw">summary</span>(mod3)[[<span class="dv">1</span>]][[<span class="st">&quot;Pr(&gt;F)&quot;</span>]][<span class="dv">1</span>], <span class="dv">4</span>)
+  
+}
+
+sigs &lt;-<span class="st"> </span>pvals[pvals[,<span class="dv">2</span><span class="op">:</span><span class="dv">4</span>] <span class="op">&lt;</span><span class="st"> </span><span class="fl">0.05</span>, ] <span class="op">%&gt;%</span><span class="st"> </span><span class="kw">na.omit</span>()</code></pre></div>
+</div>
+</div>
 </div>
 <div id="community-analysis" class="section level2">
 <h2>Community Analysis</h2>
 <p>Another way of analyzing this data is to treat all of the metabolites in a sample as a community and look at differences between the “metabolomes” of each sample.</p>
-<p>As an example, we can ordinate the tumor tissue and examine differences between the four treatment groups using a permutational ANOVA. This is done in the <code>vegan</code> package which was written for ecological community data.</p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">## use the vegan package to do a normal MDS on Euclidean distance
-
-<span class="co"># we need a horizontal table of area under the curve and calculate relative abundance</span>
-aqh &lt;-<span class="st"> </span>aq <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">filter</span>(Label <span class="op">==</span><span class="st"> &quot;tumor&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">spread</span>(<span class="dt">key =</span> metabolite, <span class="dt">value =</span> area) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">select</span>(<span class="op">-</span><span class="kw">c</span>(id, Label, mouseID, treatmentID, Exercise, Weight))
-aqhnorm &lt;-<span class="st"> </span><span class="kw">decostand</span>(aqh, <span class="dt">MARGIN =</span> <span class="dv">1</span>, <span class="dt">method =</span> <span class="st">&quot;range&quot;</span>)
-
-<span class="co"># make a distance matrix (Euclidean)</span>
-
-aqdist &lt;-<span class="st"> </span><span class="kw">vegdist</span>(aqhnorm, <span class="dt">method =</span> <span class="st">&quot;euclidean&quot;</span>)
-
-<span class="co"># ordinate the distance matrix</span>
-
-ord &lt;-<span class="st"> </span><span class="kw">metaMDS</span>(aqhnorm)
-## Run 0 stress 0.05363327 
-## Run 1 stress 0.05363151 
-## ... New best solution
-## ... Procrustes: rmse 0.0006514437  max resid 0.002083882 
-## ... Similar to previous best
-## Run 2 stress 0.0536332 
-## ... Procrustes: rmse 0.0006427981  max resid 0.002030022 
-## ... Similar to previous best
-## Run 3 stress 0.05641029 
-## Run 4 stress 0.05641084 
-## Run 5 stress 0.05363187 
-## ... Procrustes: rmse 0.0001513487  max resid 0.0002715274 
-## ... Similar to previous best
-## Run 6 stress 0.3789359 
-## Run 7 stress 0.05363167 
-## ... Procrustes: rmse 0.0002291025  max resid 0.0005716349 
-## ... Similar to previous best
-## Run 8 stress 0.0536329 
-## ... Procrustes: rmse 0.0006780301  max resid 0.001897933 
-## ... Similar to previous best
-## Run 9 stress 0.05648586 
-## Run 10 stress 0.06432918 
-## Run 11 stress 0.05363187 
-## ... Procrustes: rmse 0.0003165284  max resid 0.0009977345 
-## ... Similar to previous best
-## Run 12 stress 0.06533325 
-## Run 13 stress 0.0675161 
-## Run 14 stress 0.05363225 
-## ... Procrustes: rmse 0.000429062  max resid 0.001307027 
-## ... Similar to previous best
-## Run 15 stress 0.05363284 
-## ... Procrustes: rmse 0.0005467432  max resid 0.001644756 
-## ... Similar to previous best
-## Run 16 stress 0.05648246 
-## Run 17 stress 0.06442499 
-## Run 18 stress 0.06465574 
-## Run 19 stress 0.06424873 
-## Run 20 stress 0.0536317 
-## ... Procrustes: rmse 0.0002580382  max resid 0.0008069117 
-## ... Similar to previous best
-## *** Solution reached
-
-<span class="co"># test the fit of our ordination with a stressplot</span>
-<span class="kw">stressplot</span>(ord, aqdist)</code></pre></div>
-<p><img src="data:image/png;base64,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" /><!-- --></p>
-<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">
-## perform a permANOVA on our grouping variables
-aqhAll &lt;-<span class="st"> </span>aq <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">filter</span>(Label <span class="op">==</span><span class="st"> &quot;tumor&quot;</span>) <span class="op">%&gt;%</span><span class="st"> </span>
-<span class="st">  </span><span class="kw">spread</span>(<span class="dt">key =</span> metabolite, <span class="dt">value =</span> area)
-<span class="kw">adonis</span>(aqdist <span class="op">~</span><span class="st"> </span>treatmentID, <span class="dt">data =</span> aqhAll) <span class="co"># there is no significance</span>
-## 
-## Call:
-## adonis(formula = aqdist ~ treatmentID, data = aqhAll) 
-## 
-## Permutation: free
-## Number of permutations: 999
-## 
-## Terms added sequentially (first to last)
-## 
-##             Df SumsOfSqs MeanSqs F.Model      R2 Pr(&gt;F)
-## treatmentID  3    11.231  3.7435  1.1675 0.17083  0.266
-## Residuals   17    54.509  3.2064         0.82917       
-## Total       20    65.740                 1.00000
-
-data &lt;-<span class="st"> </span>aqhAll
-
-<span class="co"># First pull the coordinates from the metaMDS() ordination into </span>
-<span class="co"># your grouping &amp; environmental variables dataframe</span>
-data<span class="op">$</span>NMDS1 &lt;-<span class="st"> </span>ord<span class="op">$</span>points[,<span class="dv">1</span>]
-data<span class="op">$</span>NMDS2 &lt;-<span class="st"> </span>ord<span class="op">$</span>points[,<span class="dv">2</span>]
-
-
-<span class="co"># This pulls x and y coordinates for each </span>
-<span class="co"># abundance variable - in this case, enzymes (other cases, taxa or species)</span>
-species.scores &lt;-<span class="st"> </span><span class="kw">data.frame</span>(<span class="kw">scores</span>(ord, <span class="dt">display =</span> <span class="st">&quot;species&quot;</span>))
-species.scores<span class="op">$</span>species &lt;-<span class="st"> </span><span class="kw">row.names</span>(species.scores) <span class="co"># if you have rownames this imports them</span>
-<span class="co"># this will be used later to plot the enzymes on their ordination coordinates</span>
-
-<span class="co"># function for ellipses that is floating all around the internet</span>
-<span class="co"># only run this function, don't change anything in it</span>
-veganCovEllipse &lt;-<span class="st"> </span><span class="cf">function</span> (cov, <span class="dt">center =</span> <span class="kw">c</span>(<span class="dv">0</span>, <span class="dv">0</span>), <span class="dt">scale =</span> <span class="dv">1</span>, <span class="dt">npoints =</span> <span class="dv">100</span>) 
-{
-  theta &lt;-<span class="st"> </span>(<span class="dv">0</span><span class="op">:</span>npoints) <span class="op">*</span><span class="st"> </span><span class="dv">2</span> <span class="op">*</span><span class="st"> </span>pi<span class="op">/</span>npoints
-  Circle &lt;-<span class="st"> </span><span class="kw">cbind</span>(<span class="kw">cos</span>(theta), <span class="kw">sin</span>(theta))
-  <span class="kw">t</span>(center <span class="op">+</span><span class="st"> </span>scale <span class="op">*</span><span class="st"> </span><span class="kw">t</span>(Circle <span class="op">%*%</span><span class="st"> </span><span class="kw">chol</span>(cov)))
-}
-
-<span class="co"># data for ellipses</span>
-<span class="co"># loop: for each level of your grouping variable, save the correct coordinates for an ellipse </span>
-<span class="co"># in the dataframe df_ell</span>
-
-
-df_ell &lt;-<span class="st"> </span><span class="kw">data.frame</span>() <span class="co"># creates empty dataframe to fill in the loop</span>
-<span class="cf">for</span>(g <span class="cf">in</span> <span class="kw">levels</span>(data<span class="op">$</span>treatmentID)){
-  df_ell &lt;-<span class="st"> </span><span class="kw">rbind</span>(df_ell, <span class="kw">cbind</span>(<span class="kw">as.data.frame</span>(<span class="kw">with</span>(data [data<span class="op">$</span>treatmentID<span class="op">==</span>g,],
-                                                   <span class="kw">veganCovEllipse</span>(<span class="kw">cov.wt</span>(<span class="kw">cbind</span>(NMDS1,NMDS2),<span class="dt">wt=</span><span class="kw">rep</span>(<span class="dv">1</span><span class="op">/</span><span class="kw">length</span>(NMDS1),<span class="kw">length</span>(NMDS1)))<span class="op">$</span>cov,<span class="dt">center=</span><span class="kw">c</span>(<span class="kw">mean</span>(NMDS1),<span class="kw">mean</span>(NMDS2)))))
-                                ,<span class="dt">treatmentID=</span>g))
-}
-<span class="kw">str</span>(df_ell) <span class="co"># your dataframe should have 3 columns: NMDS1, NMDS2, and your grouping variable</span>
-## 'data.frame':    404 obs. of  3 variables:
-##  $ NMDS1      : num  0.308 0.308 0.307 0.304 0.301 ...
-##  $ NMDS2      : num  -0.010541 -0.006863 -0.003278 0.000199 0.003553 ...
-##  $ treatmentID: Factor w/ 4 levels &quot;EX_AL&quot;,&quot;EX_ER&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
-
-<span class="co"># This pulls data to label the centers of the ellipses</span>
-<span class="co"># data is the environmental/grouping variables dataframe</span>
-NMDS.mean =<span class="st"> </span><span class="kw">aggregate</span>(data[,<span class="kw">c</span>(<span class="st">&quot;NMDS1&quot;</span>, <span class="st">&quot;NMDS2&quot;</span>)],
-                      <span class="kw">list</span>(<span class="dt">group =</span> data<span class="op">$</span>treatmentID), mean)
-
-
-<span class="co"># plot in ggplot</span>
-<span class="co"># if it bothers you to have it all under one command (GORDON), </span>
-<span class="co"># add a variable in front of ggplot() and in front of every line </span>
-<span class="co"># or comment out lines one at a time to work on them</span>
-
-<span class="co"># hint: everywhere you see &quot;Treatment&quot;, you will need to replace with your own grouping variable</span>
-<span class="kw">ggplot</span>(<span class="dt">data =</span> data, <span class="kw">aes</span>(<span class="dt">x =</span> NMDS1, <span class="dt">y =</span> NMDS2)) <span class="op">+</span><span class="st"> </span><span class="co"># this sets the basic plot</span>
-<span class="st">  </span><span class="kw">geom_polygon</span>(<span class="dt">data =</span> df_ell, <span class="kw">aes</span>(<span class="dt">fill =</span> treatmentID, <span class="dt">group =</span> treatmentID, <span class="dt">alpha=</span>treatmentID)) <span class="op">+</span><span class="st"> </span><span class="co">#add ellipses, grouped by your grouping variable</span>
-<span class="st">  </span><span class="co"># if you don't want the polygon filled with a color, use geom_path instead of geom_polygon</span>
-<span class="st">  </span><span class="kw">geom_point</span>(<span class="kw">aes</span>(<span class="dt">x =</span> NMDS1, <span class="dt">y =</span> NMDS2, <span class="dt">shape =</span> treatmentID, <span class="dt">color =</span> treatmentID), <span class="dt">size =</span> <span class="dv">1</span>) <span class="op">+</span><span class="st">  </span><span class="co">#adds ordination points, shaped by grouping variable</span>
-<span class="st">  </span><span class="kw">annotate</span>(<span class="st">&quot;text&quot;</span>,<span class="dt">x =</span> NMDS.mean<span class="op">$</span>NMDS1,<span class="dt">y =</span> NMDS.mean<span class="op">$</span>NMDS2,<span class="dt">label=</span>NMDS.mean<span class="op">$</span>group)   <span class="op">+</span>
-<span class="st">  </span><span class="kw">theme_classic</span>() <span class="op">+</span><span class="st"> </span><span class="co"># white background, no grid lines, black axises</span>
-<span class="st">  </span><span class="co"># theme_bw() will keep gridlines but put thick black line around plot</span>
-<span class="st">  </span><span class="kw">ggtitle</span>(<span class="st">&quot;NMDS of all 4 treatment groups TUMOR TISSUE&quot;</span>)</code></pre></div>
-<p><img src="data:image/png;base64,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" /><!-- --></p>
+<div id="non-metric-multidimensional-scaling-nmds" class="section level3">
+<h3>Non-metric multidimensional scaling (NMDS)</h3>
+<p>NMDS plots each sample by its similarity to the community of another sample. The statistical test is a permutational ANOVA to determine statistical differences between treatment groups. In theory, you can visually see statistical significance on the NMDS plot when two ellipses are separate from each other. In practice, this doesn’t always happen because ordinations are performed in multiple dimensions and reduced to 2D for visualization, so keep that in mind.</p>
+</div>
 </div>
 </div>
 </div>
