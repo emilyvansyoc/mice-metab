@@ -9,6 +9,9 @@ require(ggplot2)
 aq <- read.csv("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/data_normalizedAQ.csv", header = TRUE, stringsAsFactors = TRUE) %>% 
   mutate(id = X,
          X = NULL)
+# read in processed but NON-normalized data from MetaboAnalyst for community analysis
+aqproc <- read.csv("./data/data_processedAQ.csv", header = TRUE, stringsAsFactors = TRUE) %>% 
+  rename(id = X)
 
 # add sample keys
 key <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/sampleKey.txt", header = TRUE) %>% 
@@ -24,7 +27,7 @@ key <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/
 
 # merge to join IDs
 
-all <- merge(key, aq, by = c("id", "Label")) %>% 
+all <- merge(key, aqproc, by = c("id", "Label")) %>% 
   mutate(treatmentID = as.character(treatmentID))
 
 for(i in 1:nrow(all)) {
@@ -52,5 +55,5 @@ qqnorm(aqdataVert$area)
 qqline(aqdataVert$area)
 
 # write for RMD
-#write.table(aqdataVert, file = "./data/allAqueousCleaned.txt", row.names = FALSE)
+write.table(aqdataVert, file = "./data/aqueousCleanedNotNormalized.txt", row.names = FALSE)
 

@@ -3,9 +3,9 @@ title: "Preliminary Metabolomics Analysis"
 author: "Emily Bean"
 date: "`r Sys.Date()`"
 output:
-  prettydoc::html_pretty:
-    theme: tactile
-    highlight: github
+  html_document: 
+    toc: true
+    theme: united
 ---
 
 ## Overview
