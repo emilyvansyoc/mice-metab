@@ -55,5 +55,5 @@ qqnorm(aqdataVert$area)
 qqline(aqdataVert$area)
 
 # write for RMD
-write.table(aqdataVert, file = "./data/aqueousCleanedNotNormalized.txt", row.names = FALSE)
+#write.table(aqdataVert, file = "./data/aqueousCleanedNotNormalized.txt", row.names = FALSE)
 
