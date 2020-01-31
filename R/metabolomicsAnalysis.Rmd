@@ -8,8 +8,8 @@ output:
     theme: united
 ---
 
-```{r setup, include=FALSE, warning = FALSE, message = FALSE, collapse = TRUE}
-knitr::opts_chunk$set(echo = TRUE)
+```{#r setup, include=FALSE, warning = FALSE, message = FALSE, collapse = TRUE}
+knitr::opts_chunk$set(echo = FALSE, include = FALSE)
 ```
 ## Overview
 
@@ -508,6 +508,9 @@ ggplot(data = tukdf, aes(x = Weight, y = area)) +
 require(ggordiplots)
 require(vegan)
 
+# source myNMDS function
+source("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/R/FUNCTIONmyNMDS.R")
+
 # read un-normalized data
 aqproc <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/aqueousCleanedNotNormalized.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
   mutate(tissue.type =
@@ -558,7 +561,7 @@ myNMDS(abundDF, sampDF, indVar = "tissue.type", ordK = 2)
 #### Plasma D7 vs D21 v D35
 
 There are significant difference between the times.
-```{r}
+```{#r}
 
 # plasma days
 abundDF <- plasmaproch %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
@@ -614,7 +617,7 @@ sampDF <- plasmaproch %>%
 myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
 ```
 
-```{r}
+```{#r}
 
 # DAY 35
 # plasma by treatmentID
@@ -677,7 +680,7 @@ sampDF <- plasmaproch %>%
 myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
 ```
 
-```{r}
+```{#r}
 
 # DAY 35
 # plasma by treatmentID
