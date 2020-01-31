@@ -19,12 +19,30 @@ myNMDS <- function(abundDF, # dataframe with only abundance data
                    ordK = 2 # number of dimensions for ordination
 ) {
   
-  ## ---- require packages ----
+  ## ---- error handling for requiring packages ----
   
-  require(pairwiseAdonis)
-  require(vegan)
-  require(ggplot2)
-  require(ggordiplots)
+  need.packages <- c("pairwiseAdonis", "vegan", "ggplot2", "ggordiplots", "devtools")
+  not_installed <- need.packages[!(need.packages %in% installed.packages()[ , "Package"])] 
+  if(length(not_installed)) {
+    
+    # print warning message that dependencies install
+    cat("\n installing packages:", not_installed, "\n")
+    # use error handling to install CRAN packages
+    try(install.packages(not_installed), silent = TRUE)
+    
+    # use error handling to install github packages
+    require("devtools")
+    try(install_github("jfq3/ggordiplots"), silent = TRUE)
+    try(install_github("pmartinezarbizu/pairwiseAdonis/pairwiseAdonis"), silent = TRUE)
+    
+  }
+  
+  tryCatch(c(require(pairwiseAdonis),
+             require(vegan),
+             require(ggplot2),
+             require(ggordiplots)),
+           
+           error = function(c) "Packages are not installed or loaded correctly")
   
   ## ---- stat testing ----
   
