@@ -1,0 +1,210 @@
+---
+title: "Metabolomic NMDS"
+author: "Emily Bean"
+date: "January 10, 2020"
+output:
+  html_document:
+    toc: true
+    theme: united
+---
+
+## Overview
+
+See "metabolomicsAnalysis.Rmd" for details
+
+## Community Analysis
+
+**Note: this data has been processed by MetaboAnalyst but not normalized (see Analysis Report for details on this process)**
+
+```{r echo = FALSE}
+# read data
+require(ggordiplots)
+require(vegan)
+
+# source myNMDS function
+source("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/R/FUNCTIONmyNMDS.R")
+
+# read un-normalized data
+aqproc <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/aqueousCleanedNotNormalized.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
+  mutate(tissue.type =
+           case_when(Label %in% "tumor" ~ "tumor",
+                     Label %in% "plasmaD7" ~ "plasma",
+                     Label %in% "plasmaD21" ~ "plasma",
+                     Label %in% "plasmaD35" ~ "plasma"))
+
+# make separate tumor and plasma dataframes for easier analysis 
+plasmaproc <- aqproc %>% 
+  filter(!Label == "tumor") %>% 
+  mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "7",
+    Label %in% "plasmaD21" ~ "21",
+    Label %in% "plasmaD35" ~ "35"
+  ), ordered = TRUE, levels = c("7", "21", "35")))
+
+# this data needs to be horizontal for NMDS
+aqproch <- aqproc %>% 
+  spread(key = metabolite, value = area) %>% 
+  select(-c(id, mouseID))
+
+plasmaproch <- plasmaproc %>% 
+  spread(key = metabolite, value = area) %>% 
+  select(-c(id, mouseID))
+
+tumorh <- aqproc %>% 
+  filter(Label == "tumor") %>% 
+    spread(key = metabolite, value = area) %>% 
+  select(-c(id, mouseID))
+
+
+```
+
+#### Plasma vs tumor
+
+As expected, there is a significant difference between tumor and plasma tissue.
+```{r}
+
+# plasma vs tumor
+abundDF <- aqproch %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type))
+sampDF <- aqproch %>% select(Label, treatmentID, Exercise, Weight, tissue.type)
+
+myNMDS(abundDF, sampDF, indVar = "tissue.type", ordK = 2)
+
+```
+
+#### Plasma D7 vs D21 v D35
+
+There are significant difference between the times.
+```{#r}
+
+# plasma days
+abundDF <- plasmaproch %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
+sampDF <- plasmaproch %>% select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
+
+myNMDS(abundDF, sampDF, indVar = "Time", ordK = 2)
+
+```
+
+#### Four treatment groups
+
+##### Tumor
+
+None of the four groups were significantly different. 
+```{r}
+# tumor by treatmentID
+abundDF <- tumorh %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type))
+sampDF <- tumorh %>% select(Label, treatmentID, Exercise, Weight, tissue.type)
+
+myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
+```
+
+##### Plasma
+
+Since there are differences by day, we will do 3 separate ordinations for each time
+```{r}
+
+# DAY 7
+# plasma by treatmentID
+abundDF <- plasmaproch %>% 
+  filter(Time == "7") %>% 
+  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
+
+sampDF <- plasmaproch %>% 
+  filter(Time == "7") %>% 
+  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
+
+myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
+```
+
+```{r}
+
+# DAY 21
+# plasma by treatmentID
+abundDF <- plasmaproch %>% 
+  filter(Time == "21") %>% 
+  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
+
+sampDF <- plasmaproch %>% 
+  filter(Time == "21") %>% 
+  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
+
+myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
+```
+
+```{#r}
+
+# DAY 35
+# plasma by treatmentID
+abundDF <- plasmaproch %>% 
+  filter(Time == "35") %>% 
+  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
+
+sampDF <- plasmaproch %>% 
+  filter(Time == "35") %>% 
+  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
+
+myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
+```
+
+
+#### Exercise vs Sedentary
+
+##### Tumor
+
+
+None of the four groups were significantly different. 
+```{r}
+# tumor by treatmentID
+abundDF <- tumorh %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type))
+sampDF <- tumorh %>% select(Label, treatmentID, Exercise, Weight, tissue.type)
+
+myNMDS(abundDF, sampDF, indVar = "Exercise", ordK = 2)
+```
+
+##### Plasma
+
+Since there are differences by day, we will do 3 separate ordinations for each time
+```{r}
+
+# DAY 7
+# plasma by treatmentID
+abundDF <- plasmaproch %>% 
+  filter(Time == "7") %>% 
+  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
+
+sampDF <- plasmaproch %>% 
+  filter(Time == "7") %>% 
+  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
+
+myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
+```
+
+```{r}
+
+# DAY 21
+# plasma by treatmentID
+abundDF <- plasmaproch %>% 
+  filter(Time == "21") %>% 
+  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
+
+sampDF <- plasmaproch %>% 
+  filter(Time == "21") %>% 
+  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
+
+myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
+```
+
+```{#r}
+
+# DAY 35
+# plasma by treatmentID
+abundDF <- plasmaproch %>% 
+  filter(Time == "35") %>% 
+  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
+
+sampDF <- plasmaproch %>% 
+  filter(Time == "35") %>% 
+  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
+
+myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
+```
+

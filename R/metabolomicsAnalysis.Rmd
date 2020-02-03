@@ -8,12 +8,16 @@ output:
     theme: united
 ---
 
-```{#r setup, include=FALSE, warning = FALSE, message = FALSE, collapse = TRUE}
-knitr::opts_chunk$set(echo = FALSE, include = FALSE)
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE)
+
 ```
+
 ## Overview
 
 This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Connie Rogers lab. 
+
 
 ### General cleaning steps 
 1. Download archived raw .wiff files from Metabolomics Core  
@@ -24,20 +28,22 @@ This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Co
 6. Download normalized data for statistical analysis in R  
 
 ### Analysis Steps  
-1. Individual metabolites 
+1. Individual metabolites (THIS SCRIPT)
 2. Sample clustering    
-3. Metabolic "community"    
+3. Metabolic "community" (`metabolomicsNMDS.Rmd`)   
 
 ### Pairwise comparisons  
-*All comparisons made for tumor and plasma tissues*  
+*All comparisons made for both tumor and plasma tissues*
+
 1. Plasma vs tumor
 2. Plasma D7 vs D21 vd D35  
 3. 4 treatment groups (2x2 factorial)  
 4. Exercise vs sedentary  
 5. Weight gain vs weight maintenance  
+
 **Note:** These are _annotated metabolites only_. In the raw dataset are many tens of thousands more metabolites and lipids that were detected as compounds but not annotated; we can do a community analysis on these later if we want to.
 
-```{r echo = FALSE}
+```{r echo = FALSE, include = FALSE}
 ## Read in all data and load packages
 require(dplyr)
 require(tidyr)
@@ -45,6 +51,9 @@ require(vegan)
 require(ggplot2)
 require(pairwiseAdonis)
 require(ggordiplots)
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
 
 # read all aqueous data
 aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
@@ -73,13 +82,13 @@ tumetabs <- unique(tumor$metabolite)
 
 ## Pairwise comparisons
 
-**Note: in pairwise comparions, the data has been normalized, scaled, and log-transformed in MetaboAnalyst**
+**Note: in pairwise comparions, the data has been normalized, scaled, and log-transformed in MetaboAnalyst. An accompanying PDF report describes those steps.**
 
 #### Plasma vs tumor
 
 We would assume that the plasma and tumor tissue would differ significantly in their metabolic makeup, so this is really more of a "double-check" than an an analysis.
 
-Since there are only two explanatory variables (plasma and tumor) this is technically a t-test so no Tukey's post-hoc is performed. Boxplots visulize the differences. The metabolites that differ by tissue type are all higher in the plasma than tumor tissue.
+
 
 ```{r}
 # is there a difference between tissues?
@@ -88,6 +97,7 @@ pvals <- data.frame()
 for(i in 1:length(aq)) {
   mod <- aov(area ~ tissue.type, data = filter(aq, metabolite == metabs[i]))
   pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
   pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
 }
 
@@ -102,16 +112,17 @@ knitr::kable(sigs)
 tukdf <- aq[aq$metabolite %in% sigs$metabolite, ]
 
 ggplot(data = tukdf, aes(x = tissue.type, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
   geom_boxplot() +
   facet_wrap(~metabolite) 
 ```
 
+Since there are only two explanatory variables (plasma and tumor), this is technically a t-test so no Tukey's post-hoc is performed. Boxplots visulize the differences. The boxplots illustrate that the metabolites are all higher in plasma than tumor tissue. There seem to be several high outliers, even in the normalized data.The boxplots also illustrate that most metabolites have a positive log change in the plasma tissue and a negative log change in the tumor tissue.
 
 #### Plasma D7 vs D21 v D35
 
 It's important for downstream analysis to first determine if the plasma metabolome change significantly from day 7, to day 21, to day 35. If there are differences, we will need to keep the days separate for downstream analyses; if not, we can likely lump them all together.  
 
-An ANOVA on each individual metabolite by Time shows that there are multiple metabolites that differ between the times, so when analyzing plasma metabolome we will keep Time as a separate factor.
 
 ```{r}
 
@@ -122,6 +133,7 @@ pvals <- data.frame()
 for(i in 1:length(plasmetabs)) {
   mod <- aov(area ~ Time, data = filter(plasma, metabolite == plasmetabs[i]))
   pvals[i, "metabolite"] <- plasmetabs[i]
+  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
   pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
 }
 
@@ -173,7 +185,9 @@ tukeyOut <- tukeyOut[!tukeyOut$p %in% "error",]
 
 knitr::kable(tukeyOut)
 ```
+
 Another visualization tool is boxplots.
+
 ```{r}
 ## make boxplots to illustrate differences
 
@@ -185,16 +199,18 @@ ggplot(data = tukdf, aes(x = Time, y = area)) +
 ```
 
 
+An ANOVA on each individual metabolite by Time shows that there are multiple metabolites that differ between the times, so when analyzing plasma metabolome we will keep Time as a separate factor. The Tukey tests indicate that most metabolites differ between either D7 and D35, or D21 and D35. Few (or none) indicate difference between D7 and D21.
+This should be explored further to examine if the differences are due to cancer development or if they can be attributed to other things like growth and metabolism.
 
 #### Four treatment groups
 
 The initial analyis is comparing all four treatment groups to each other in the 2x2 factorial style. The code follows this structure for pairwise comparisons with ANOVA:
 
->This code is a one-way ANOVA between the area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table. 
+>This code is a one-way ANOVA between the log-transformed area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table. 
 
 ##### Tumor tissue 
-There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue. 
 
+There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue. 
 ```{r collapse = TRUE}
 ### TUMOR
 
@@ -204,13 +220,14 @@ pvals <- data.frame()
 for(i in 1:length(metabs)) {
   mod <- aov(area ~ treatmentID, data = filter(tumor, metabolite == tumetabs[i]))
   pvals[i, "metabolite"] <- tumetabs[i]
+  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
   pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
    
 }
 
 # pull significant p values into a table
 sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs, col.names =  c("metabolite", "p value"))
+knitr::kable(sigs, col.names =  c("metabolite", "F value", "p value"))
 
 ```
 
@@ -257,7 +274,9 @@ tukeyOut <- tukeyOut[!tukeyOut$p %in% "error",]
 
 knitr::kable(tukeyOut)
 ```
-Another visualization tool is boxplots.
+
+Another visualization tool is boxplots.  
+
 ```{r}
 ## make boxplots to illustrate differences
 
@@ -267,11 +286,13 @@ ggplot(data = tukdf, aes(x = treatmentID, y = area)) +
   geom_boxplot() +
   facet_wrap(~metabolite) 
 ```
+
+Quinolinate and Glucose both vary between two different treatments, which is why they are listed twice. It is important to note that dividing the data into four treatment groups rather than two (e.g. Exercise vs Sedentary) decreases the number of mice in each group, which is likely why there are fewer metabolites that are significant when comparing all 4 groups.
+
 ##### Plasma
 
 
-Since we clearly saw that there is a difference in the plasma aqueous metabolites between days (above), we will keep Time as a separate factor moving forward.
-Three separate ANOVAs; one for each time point.
+Since we clearly saw that there is a difference in the plasma aqueous metabolites between days (above), we will keep Time as a separate factor moving forward. Therefore, there are 3 separate ANOVAs performed for each test; one for each time point. The results of each time point are independent of the others.
 ```{r}
 
 # get metabolites
@@ -284,15 +305,21 @@ pvals <- data.frame()
 for(i in 1:length(metabs)) {
   mod1 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
   pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "fStatD7"] <- round(summary(mod1)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
   mod2 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "21"))
+  pvals[i, "fStatD21"] <- round(summary(mod2)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
   mod3 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "35"))
+  pvals[i, "fStatD35"] <- round(summary(mod3)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
   
 }
 
-sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
+sigs <- rbind(pvals[pvals$pvalD7 < 0.05, ],
+              pvals[pvals$pval21 < 0.05, ],
+              pvals[pvals$pval35 < 0.05, ])
+              
 
 ```
 
@@ -303,10 +330,9 @@ sigdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
 # perform ANOVA again and store Tukey variables
 Tmetabs <- unique(sigdf$metabolite)
-tukeyOut <- data.frame()
 
 for(i in 1:length(Tmetabs)) {
-  # re-run the ANOVA
+  # re-run the ANOVA and perform Tukey post-hoc test
   mod1 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
   tuk1 <- TukeyHSD(mod1)$treatmentID 
   tuk1 <- cbind(tuk1, Time = 7)
@@ -317,14 +343,15 @@ for(i in 1:length(Tmetabs)) {
   tuk3 <- TukeyHSD(mod3)$treatmentID
   tuk3 <- cbind(tuk3, Time = 35)
   
-  # perform Tukey post-hoc test and store significant p values
+  # store significant p values
   
   tukmat <- rbind(tuk1, tuk2, tuk3)
-  sig <- data.frame(p = round(tukmat[,"p adj"], 4),
+  sig <- data.frame(metabolite = as.character(Tmetabs[i]),
+                    time = tukmat[,"Time"],
                     contrast = dimnames(tukmat)[[1]],
-                    metabolite = as.character(Tmetabs[i]),
-                    time = tukmat[,"Time"])
-  tukeyOut <- rbind(sig, tukeyOut)
+                    p = round(tukmat[,"p adj"], 4)
+                    )
+  tukeyOut <- sig[sig$p < 0.05, ]
   
 }
 
@@ -363,13 +390,14 @@ pvals <- data.frame()
 for(i in 1:length(tumetabs)) {
   mod <- aov(area ~ Exercise, data = filter(tumor, metabolite == tumetabs[i]))
   pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
   pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
    
 }
 
 # pull significant p values into a table
 sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs, col.names =  c("metabolite", "p value"))
+knitr::kable(sigs, col.names =  c("metabolite", "F value",  "p value"))
 
 ```
 
@@ -398,16 +426,19 @@ pvals <- data.frame()
 for(i in 1:length(plasmetabs)) {
   mod1 <- aov(area~ Exercise, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
   pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "fStatD7"] <- round(summary(mod1)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
   mod2 <- aov(area~ Exercise, data = filter(plasma, metabolite == plasmetabs[i] & Time == "21"))
+  pvals[i, "fStatD21"] <- round(summary(mod2)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
   mod3 <- aov(area~ Exercise, data = filter(plasma, metabolite == plasmetabs[i] & Time == "35"))
+  pvals[i, "fStatD35"] <- round(summary(mod3)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
   
 }
 
 sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
-knitr::kable(sigs, col.names =  c("metabolite", "p value D7", "p value D21", "p value D35"))
+knitr::kable(sigs, col.names =  c("metabolite", "F value D7", "p value D7", "F value D21", "p value D21", "F value D35", "p value D35"))
 
 ```
 
@@ -442,13 +473,14 @@ pvals <- data.frame()
 for(i in 1:length(metabs)) {
   mod <- aov(area ~ Weight, data = filter(tumor, metabolite == tumetabs[i]))
   pvals[i, "metabolite"] <- tumetabs[i]
+  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
   pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
    
 }
 
 # pull significant p values into a table
 sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs, col.names =  c("metabolite", "p value"))
+knitr::kable(sigs, col.names =  c("metabolite", "F value", "p value"))
 
 ```
 
@@ -476,16 +508,19 @@ pvals <- data.frame()
 for(i in 1:length(plasmetabs)) {
   mod1 <- aov(area~ Weight, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
   pvals[i, "metabolite"] <- metabs[i]
+  pvals[i, "fStatD7"] <- round(summary(mod1)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
   mod2 <- aov(area~ Weight, data = filter(plasma, metabolite == plasmetabs[i] & Time == "21"))
+  pvals[i, "fStatD21"] <- round(summary(mod2)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
   mod3 <- aov(area~ Weight, data = filter(plasma, metabolite == plasmetabs[i] & Time == "35"))
+  pvals[i, "fStatD35"] <- round(summary(mod3)[[1]][["F value"]][1], 4)
   pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
   
 }
 
 sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
-knitr::kable(sigs, col.names =  c("metabolite", "p value D7", "p value D21", "p value D35"))
+knitr::kable(sigs, col.names =  c("metabolite", "F value D7", "p value D7", "F value D21", "p value D21", "F value D35", "p value D35"))
 
 ```
 
@@ -499,198 +534,3 @@ ggplot(data = tukdf, aes(x = Weight, y = area)) +
   facet_wrap(Time~metabolite) 
 ```
 
-## Community Analysis
-
-**Note: this data has been processed by MetaboAnalyst but not normalized (see Analysis Report for details on this process)**
-
-```{r echo = FALSE}
-# read data
-require(ggordiplots)
-require(vegan)
-
-# source myNMDS function
-source("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/R/FUNCTIONmyNMDS.R")
-
-# read un-normalized data
-aqproc <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/aqueousCleanedNotNormalized.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
-  mutate(tissue.type =
-           case_when(Label %in% "tumor" ~ "tumor",
-                     Label %in% "plasmaD7" ~ "plasma",
-                     Label %in% "plasmaD21" ~ "plasma",
-                     Label %in% "plasmaD35" ~ "plasma"))
-
-# make separate tumor and plasma dataframes for easier analysis 
-plasmaproc <- aqproc %>% 
-  filter(!Label == "tumor") %>% 
-  mutate(Time = factor(case_when(
-    Label %in% "plasmaD7" ~ "7",
-    Label %in% "plasmaD21" ~ "21",
-    Label %in% "plasmaD35" ~ "35"
-  ), ordered = TRUE, levels = c("7", "21", "35")))
-
-# this data needs to be horizontal for NMDS
-aqproch <- aqproc %>% 
-  spread(key = metabolite, value = area) %>% 
-  select(-c(id, mouseID))
-
-plasmaproch <- plasmaproc %>% 
-  spread(key = metabolite, value = area) %>% 
-  select(-c(id, mouseID))
-
-tumorh <- aqproc %>% 
-  filter(Label == "tumor") %>% 
-    spread(key = metabolite, value = area) %>% 
-  select(-c(id, mouseID))
-
-
-```
-
-#### Plasma vs tumor
-
-As expected, there is a significant difference between tumor and plasma tissue.
-```{r}
-
-# plasma vs tumor
-abundDF <- aqproch %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type))
-sampDF <- aqproch %>% select(Label, treatmentID, Exercise, Weight, tissue.type)
-
-myNMDS(abundDF, sampDF, indVar = "tissue.type", ordK = 2)
-
-```
-
-#### Plasma D7 vs D21 v D35
-
-There are significant difference between the times.
-```{#r}
-
-# plasma days
-abundDF <- plasmaproch %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
-sampDF <- plasmaproch %>% select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
-
-myNMDS(abundDF, sampDF, indVar = "Time", ordK = 2)
-
-```
-
-#### Four treatment groups
-
-##### Tumor
-
-None of the four groups were significantly different. 
-```{r}
-# tumor by treatmentID
-abundDF <- tumorh %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type))
-sampDF <- tumorh %>% select(Label, treatmentID, Exercise, Weight, tissue.type)
-
-myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
-```
-
-##### Plasma
-
-Since there are differences by day, we will do 3 separate ordinations for each time
-```{r}
-
-# DAY 7
-# plasma by treatmentID
-abundDF <- plasmaproch %>% 
-  filter(Time == "7") %>% 
-  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
-
-sampDF <- plasmaproch %>% 
-  filter(Time == "7") %>% 
-  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
-
-myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
-```
-
-```{r}
-
-# DAY 21
-# plasma by treatmentID
-abundDF <- plasmaproch %>% 
-  filter(Time == "21") %>% 
-  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
-
-sampDF <- plasmaproch %>% 
-  filter(Time == "21") %>% 
-  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
-
-myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
-```
-
-```{#r}
-
-# DAY 35
-# plasma by treatmentID
-abundDF <- plasmaproch %>% 
-  filter(Time == "35") %>% 
-  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
-
-sampDF <- plasmaproch %>% 
-  filter(Time == "35") %>% 
-  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
-
-myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
-```
-
-
-#### Exercise vs Sedentary
-
-##### Tumor
-
-
-None of the four groups were significantly different. 
-```{r}
-# tumor by treatmentID
-abundDF <- tumorh %>% select(-c(Label, treatmentID, Exercise, Weight, tissue.type))
-sampDF <- tumorh %>% select(Label, treatmentID, Exercise, Weight, tissue.type)
-
-myNMDS(abundDF, sampDF, indVar = "Exercise", ordK = 2)
-```
-
-##### Plasma
-
-Since there are differences by day, we will do 3 separate ordinations for each time
-```{r}
-
-# DAY 7
-# plasma by treatmentID
-abundDF <- plasmaproch %>% 
-  filter(Time == "7") %>% 
-  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
-
-sampDF <- plasmaproch %>% 
-  filter(Time == "7") %>% 
-  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
-
-myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
-```
-
-```{r}
-
-# DAY 21
-# plasma by treatmentID
-abundDF <- plasmaproch %>% 
-  filter(Time == "21") %>% 
-  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
-
-sampDF <- plasmaproch %>% 
-  filter(Time == "21") %>% 
-  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
-
-myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
-```
-
-```{#r}
-
-# DAY 35
-# plasma by treatmentID
-abundDF <- plasmaproch %>% 
-  filter(Time == "35") %>% 
-  select(-c(Label, treatmentID, Exercise, Weight, tissue.type, Time))
-
-sampDF <- plasmaproch %>% 
-  filter(Time == "35") %>% 
-  select(Label, treatmentID, Exercise, Weight, tissue.type, Time)
-
-myNMDS(abundDF, sampDF, indVar = "treatmentID", ordK = 2)
-```
