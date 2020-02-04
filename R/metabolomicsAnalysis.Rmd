@@ -5,7 +5,6 @@ date: "January 10, 2020"
 output:
   html_document:
     toc: true
-    theme: united
 ---
 
 ```{r setup, echo = FALSE}
@@ -143,47 +142,27 @@ knitr::kable(sigs)
 ```
 
 To visualize the results, we can use a Tukey pos-hoc test.
+
 ```{r}
 sigdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
 # perform ANOVA again and store Tukey variables
 Tmetabs <- unique(sigdf$metabolite)
-tukeyOut <- data.frame()
-
+out <- data.frame()
 for(i in 1:length(Tmetabs)) {
   # re-run the ANOVA
   mod <- aov(area ~ Time, data = filter(sigdf, metabolite == Tmetabs[i]))
-  # perform Tukey post-hoc test and store significant p values
-  tuk <- TukeyHSD(mod)
-  tukmat <- tuk$Time
-  sig <- data.frame(p = round(tukmat[,"p adj"], 4),
-                    contrast = dimnames(tukmat)[[1]])
   
-  
-  ## workaround for if Tukey does not show significance but ANOVA does:
-  if(any(sig$p < 0.05)) {
-    
-    sigsdf <- sig[sig$p < 0.05, ] 
-    sigsdf$metabolite <- Tmetabs[i]
-  } else {
-    
-    sigsdf <- data.frame(p = "error",
-                         contrast = "error",
-                         metabolite = Tmetabs[i])
-    
-  }
-  
-  
+  # perform least-squares means
+  e <- as.data.frame(emmeans(mod, pairwise ~ Time)$contrasts)
+  e$metabolite <- Tmetabs[i]
+
   # append to outDF
-  tukeyOut <- rbind(tukeyOut, sigsdf)
+  out <- rbind(out, e)
 }
 
-
-
-rownames(tukeyOut) <- NULL
-tukeyOut <- tukeyOut[!tukeyOut$p %in% "error",]
-
-knitr::kable(tukeyOut)
+sigsdf <- out[out$p.value < 0.05 , ]
+knitr::kable(sigsdf)
 ```
 
 Another visualization tool is boxplots.
@@ -191,9 +170,10 @@ Another visualization tool is boxplots.
 ```{r}
 ## make boxplots to illustrate differences
 
-tukdf <- plasma[plasma$metabolite %in% tukeyOut$metabolite, ]
+plotdf <- plasma[plasma$metabolite %in% sigsdf$metabolite, ]
 
-ggplot(data = tukdf, aes(x = Time, y = area)) +
+ggplot(data = plotdf, aes(x = Time, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
   geom_boxplot() +
   facet_wrap(~metabolite) 
 ```
@@ -211,6 +191,7 @@ The initial analyis is comparing all four treatment groups to each other in the 
 ##### Tumor tissue 
 
 There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue. 
+
 ```{r collapse = TRUE}
 ### TUMOR
 
@@ -232,47 +213,27 @@ knitr::kable(sigs, col.names =  c("metabolite", "F value", "p value"))
 ```
 
 To visualize the results, we can use a Tukey pos-hoc test.
+
 ```{r}
 sigdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
 
 # perform ANOVA again and store Tukey variables
 Tmetabs <- unique(sigdf$metabolite)
-tukeyOut <- data.frame()
-
+out <- data.frame()
 for(i in 1:length(Tmetabs)) {
   # re-run the ANOVA
-  mod <- aov(area ~ treatmentID, data = filter(sigdf, metabolite == Tmetabs[i]))
-  # perform Tukey post-hoc test and store significant p values
-  tuk <- TukeyHSD(mod)
-  tukmat <- tuk$treatmentID
-  sig <- data.frame(p = round(tukmat[,"p adj"], 4),
-                    contrast = dimnames(tukmat)[[1]])
+  mod <- aov(area ~ treatmentID, data = filter(tumor, metabolite == tumetabs[i]))
   
-  
-  ## workaround for if Tukey does not show significance but ANOVA does:
-  if(any(sig$p < 0.05)) {
-    
-    sigsdf <- sig[sig$p < 0.05, ] 
-    sigsdf$metabolite <- Tmetabs[i]
-  } else {
-    
-    sigsdf <- data.frame(p = "error",
-                         contrast = "error",
-                         metabolite = Tmetabs[i])
-    
-  }
-  
-  
+  # perform least-squares means
+  e <- as.data.frame(emmeans(mod, pairwise ~ treatmentID)$contrasts)
+  e$metabolite <- Tmetabs[i]
+
   # append to outDF
-  tukeyOut <- rbind(tukeyOut, sigsdf)
+  out <- rbind(out, e)
 }
 
-
-
-rownames(tukeyOut) <- NULL
-tukeyOut <- tukeyOut[!tukeyOut$p %in% "error",]
-
-knitr::kable(tukeyOut)
+sigsdf <- out[out$p.value < 0.05 , ]
+knitr::kable(sigsdf)
 ```
 
 Another visualization tool is boxplots.  
@@ -293,6 +254,7 @@ Quinolinate and Glucose both vary between two different treatments, which is why
 
 
 Since we clearly saw that there is a difference in the plasma aqueous metabolites between days (above), we will keep Time as a separate factor moving forward. Therefore, there are 3 separate ANOVAs performed for each test; one for each time point. The results of each time point are independent of the others.
+
 ```{r}
 
 # get metabolites
@@ -358,7 +320,9 @@ for(i in 1:length(Tmetabs)) {
 knitr::kable(tukeyOut)
 ```
 
-```{r}
+In this test there are several significant metabolites, however - a Tukey post-hoc test shows no significant differences.
+
+```{#r}
 
 ## make boxplots to illustrate differences
 
@@ -377,6 +341,7 @@ Two exercise groups: exercised and exercise-restricted (sedentary).
 ##### Tumor
 
 There is one significant metabolite: Quinolinate.
+
 ```{r collapse = TRUE}
 ### TUMOR
 
@@ -403,6 +368,7 @@ knitr::kable(sigs, col.names =  c("metabolite", "F value",  "p value"))
 
 
 Since there are only two levels, this is basically a t-test and we do not need a Tukey's post hoc. 
+
 ```{r}
 ## make boxplots to illustrate differences
 
@@ -412,6 +378,10 @@ ggplot(data = tukdf, aes(x = Exercise, y = area)) +
   geom_boxplot() +
   facet_wrap(~metabolite) 
 ```
+
+
+Quinolinate is higher in the Sedentary than Exercising group.
+
 ##### Plasma
 
 ```{r}
@@ -443,7 +413,8 @@ knitr::kable(sigs, col.names =  c("metabolite", "F value D7", "p value D7", "F v
 ```
 
 ```{r}
-## make boxplots to illustrate differences
+## too many to look at boxplots - instead look at which group is higher
+
 
 tukdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
@@ -452,6 +423,9 @@ ggplot(data = tukdf, aes(x = Exercise, y = area)) +
   facet_wrap(Time~metabolite) 
 
 ```
+
+There are multiple significant metabolites between Exercise treatments in the plasma tissue, so these are difficult to visualize with boxplots. 
+
 
 #### Weight Restricted vs Ad-lib Fed
 
@@ -485,15 +459,18 @@ knitr::kable(sigs, col.names =  c("metabolite", "F value", "p value"))
 ```
 
 Since there are only two levels, this is basically a t-test and we do not need a Tukey's post hoc. 
+
 ```{r}
 ## make boxplots to illustrate differences
-
-tukdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
+tukdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
 ggplot(data = tukdf, aes(x = Weight, y = area)) +
   geom_boxplot() +
-  facet_wrap(~metabolite) 
+  facet_wrap(Time~metabolite) 
+
+
 ```
+
 ##### Plasma
 
 ```{r}
@@ -524,13 +501,20 @@ knitr::kable(sigs, col.names =  c("metabolite", "F value D7", "p value D7", "F v
 
 ```
 
+However, there are too many significant metabolites to utilize boxplots, so the table below shows means and standard deviations for each metabolite.
+
 ```{r}
-## make boxplots to illustrate differences
+## create table of means
 
 tukdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
-ggplot(data = tukdf, aes(x = Weight, y = area)) +
-  geom_boxplot() +
-  facet_wrap(Time~metabolite) 
+meansdf <- tukdf %>% 
+  group_by(Weight, metabolite) %>% 
+  summarize(mean = round(mean(area), 3)) %>% 
+  spread(key = Weight, value = mean)
+
+knitr::kable(meansdf, col.names = c("metabolite", "AL mean", "ER mean"))
+
+
 ```
 
