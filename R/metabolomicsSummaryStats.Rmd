@@ -1,0 +1,145 @@
+---
+title: "Metabolomics Summary Statistics"
+author: "Emily Bean"
+date: "2/4/2020"
+output:
+  html_document:
+    toc: true
+    theme: united
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warnings = FALSE, message = FALSE)
+```
+
+### Overview
+
+This document present summary statistics and an overview of the aqueous metabolomics data.
+
+```{r}
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+
+ggplot2::theme_set(theme_bw())
+
+# read all aqueous data
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
+  mutate(tissue.type =
+           case_when(Label %in% "tumor" ~ "tumor",
+                     Label %in% "plasmaD7" ~ "plasma",
+                     Label %in% "plasmaD21" ~ "plasma",
+                     Label %in% "plasmaD35" ~ "plasma"))
+
+# make separate tumor and plasma dataframes for easier analysis 
+plasma <- aq %>% 
+  filter(!Label == "tumor") %>% 
+  mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "7",
+    Label %in% "plasmaD21" ~ "21",
+    Label %in% "plasmaD35" ~ "35"
+  ), ordered = TRUE, levels = c("7", "21", "35")))
+
+tumor <- filter(aq, Label == "tumor")
+```
+
+This dataset has been processed, normalized, and transformed in MetaboAnalyst (detailed PDF report in data folder).
+
+```{r}
+
+# histogram of all data
+hist(aq$area, main = "Histogram of transformed area under the curve",
+     xlab = "log-transformed area under the curve")
+
+```
+
+
+A histogram confirms that the data are normally distributed.
+
+#### Tumor
+
+These bar plots show the number of samples in each treatment group.
+
+```{r}
+## get number of samples in each of the four treatments for tumor
+
+# first need horizontal data
+htumor <- tumor %>% 
+  spread(key = metabolite, value = area)
+
+# get number of samples
+samps <- htumor %>% 
+  group_by(treatmentID) %>% 
+  summarize(numSamps = length(id))
+
+# make plot
+ggplot(data = samps, aes(x = treatmentID, y = numSamps, fill = treatmentID)) +
+  geom_col() +
+  labs(x = "Treatment", y = "Number of samples")
+
+```
+
+```{r}
+## get number of samples for the other 4 treatments
+samps <- rbind(htumor %>% 
+                 group_by(Exercise) %>% 
+                 summarize(numSamps = length(id)) %>% 
+                 rename(Treatment = Exercise) %>% 
+                 mutate(Group = "Exercise"),
+               htumor %>% 
+                 group_by(Weight) %>% 
+                 summarize(numSamps = length(id)) %>% 
+                 rename(Treatment = Weight) %>% 
+                 mutate(Group = "Weight")
+)
+
+# make plot
+ggplot(data = samps, aes(x = Treatment, y = numSamps, fill = Group)) +
+  geom_col() +
+  labs(x = "Treatment", y = "Number of samples")
+```
+
+#### Plasma
+
+```{r}
+
+## get number of samples in each of the four treatments for plasma
+
+# first need horizontal data
+hplasma <- plasma %>% 
+  spread(key = metabolite, value = area)
+
+# get number of samples
+samps <- hplasma%>% 
+  group_by(treatmentID, Time) %>% 
+  summarize(numSamps = length(id))
+
+# make plot
+ggplot(data = samps, aes(x = treatmentID, y = numSamps, fill = Time)) +
+  geom_col() +
+  facet_wrap(~Time) +
+  labs(x = "Treatment", y = "Number of samples")
+```
+
+```{r}
+## get number of samples for the other 4 treatments
+samps <- rbind(hplasma %>% 
+                 group_by(Exercise, Time) %>% 
+                 summarize(numSamps = length(id)) %>% 
+                 rename(Treatment = Exercise) %>% 
+                 mutate(Group = "Exercise"),
+               hplasma %>% 
+                 group_by(Weight, Time) %>% 
+                 summarize(numSamps = length(id)) %>% 
+                 rename(Treatment = Weight) %>% 
+                 mutate(Group = "Weight")
+)
+
+# make plot
+ggplot(data = samps, aes(x = Treatment, y = numSamps, fill = Time)) +
+  geom_col() +
+  facet_wrap(~Time) +
+  labs(x = "Treatment", y = "Number of samples")
+```
+
+
