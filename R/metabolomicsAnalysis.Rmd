@@ -13,12 +13,12 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse =
 
 ```
 
-## Overview
+# Overview
 
 This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Connie Rogers lab. 
 
 
-### General cleaning steps 
+## General cleaning steps 
 1. Download archived raw .wiff files from Metabolomics Core  
 2. Convert .wiff to .mzML in ProteoWizard 4.0 (MS Convert)  
 3. Peak picking and alignment in MSDIAL (MoNA database for hydrophilic; LipidBlast for lipids)  
@@ -26,12 +26,12 @@ This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Co
 5. Upload to MetaboAnalyst; quantile normalization, Pareto scaling, and log transformation  
 6. Download normalized data for statistical analysis in R  
 
-### Analysis Steps  
+## Analysis Steps  
 1. Individual metabolites (THIS SCRIPT)
 2. Sample clustering    
 3. Metabolic "community" (`metabolomicsNMDS.Rmd`)   
 
-### Pairwise comparisons  
+# Pairwise comparisons  
 *All comparisons made for both tumor and plasma tissues*
 
 1. Plasma vs tumor
@@ -46,10 +46,11 @@ This is the preliminary data analysis for the 15-02 metabolomics dataset, Dr. Co
 ## Read in all data and load packages
 require(dplyr)
 require(tidyr)
-require(vegan)
+#require(vegan)
 require(ggplot2)
-require(pairwiseAdonis)
-require(ggordiplots)
+require(emmeans)
+#require(pairwiseAdonis)
+#require(ggordiplots)
 
 # set ggplot2 them
 ggplot2::theme_set(theme_bw())
@@ -79,11 +80,139 @@ plasmetabs <- unique(plasma$metabolite)
 tumetabs <- unique(tumor$metabolite)
 ```
 
-## Pairwise comparisons
+
+```{r}
+## define function to perform an ANOVA, post-hoc emmeans, and return significant data
+
+myAnova <- function(variable, df, metabList) {
+  
+  # make empty dataframe
+  sigsdf <- data.frame()
+  
+  # perform ANOVA and emmeans post-hoc
+  for(i in 1:length(metabList)) {
+    
+    # create function
+    f <- as.formula(paste0("area ~", variable))
+    
+    # perform ANOVA
+    mod <- aov(f, data = filter(df, metabolite == metabList[i]))
+    
+    # collect variables
+    pvals <- data.frame(metabolite = metabList[i],
+                        fStat =  round(summary(mod)[[1]][["F value"]][1], 4))
+    
+    # perform emmeans post-hoc
+    f1 <- as.formula(paste0("pairwise ~", variable))
+    e <- as.data.frame(emmeans(mod, f1)$contrasts,
+                       rownames = FALSE)
+    
+    # append to outDF
+    out <- cbind(pvals, e)
+    
+    # get only significant p values to send out
+    out <- out[out$p.value < 0.05, ] 
+    
+    # return dataframe of significant variables
+    sigsdf <- rbind(sigsdf, out)
+    
+    
+  }
+  
+  # round variables to make it easier to read
+  sigsdf$SE <- round(sigsdf$SE, 3)
+  sigsdf$t.ratio <- round(sigsdf$t.ratio, 3)
+  sigsdf$p.value <- round(sigsdf$p.value, 3)
+  
+  # return the dataframe of significant variables
+  
+  return(sigsdf)
+}
+```
+
+```{r}
+# define a function to perform the ANOVA and post-hoc for each of the three Times
+
+
+myAnovaTime <- function(variable, df, metabList) {
+  
+  # make empty dataframe
+  sigsdf <- data.frame()
+  
+  # perform ANOVA and emmeans post-hoc
+  for(i in 1:length(metabList)) {
+    
+    # create function
+    f <- as.formula(paste0("area ~", variable))
+    
+    # perform ANOVA
+    mod1 <- aov(f, data = filter(df, metabolite == metabList[i] & Time == "7"))
+    
+    # collect variables
+    pvals1 <- data.frame(metabolite = metabList[i],
+                         Time = "D7",
+                        fStat =  round(summary(mod1)[[1]][["F value"]][1], 4))
+    
+    # perform emmeans post-hoc
+    f1 <- as.formula(paste0("pairwise ~", variable))
+    e1 <- as.data.frame(emmeans(mod1, f1)$contrasts,
+                       rownames = FALSE)
+    
+    ## ANOVA Day 21
+    # perform ANOVA
+    mod2 <- aov(f, data = filter(df, metabolite == metabList[i] & Time == "21"))
+    
+    # collect variables
+    pvals2 <- data.frame(metabolite = metabList[i],
+                         Time = "D21",
+                         fStat =  round(summary(mod2)[[1]][["F value"]][1], 4))
+    
+    # perform emmeans post-hoc
+    e2 <- as.data.frame(emmeans(mod2, f1)$contrasts,
+                        rownames = FALSE)
+    
+    ## ANOVA Day 35
+    # perform ANOVA
+    mod3 <- aov(f, data = filter(df, metabolite == metabList[i] & Time == "35"))
+    
+    # collect variables
+    pvals3 <- data.frame(metabolite = metabList[i],
+                         Time = "D35",
+                         fStat =  round(summary(mod3)[[1]][["F value"]][1], 4))
+    
+    # perform emmeans post-hoc
+    e3 <- as.data.frame(emmeans(mod3, f1)$contrasts,
+                        rownames = FALSE)
+    
+    # append to outDF
+    out <- rbind(cbind(pvals1, e1),
+                  cbind(pvals2, e2),
+                  cbind(pvals3, e3))
+    
+    # get only significant p values to send out
+    out <- out[out$p.value < 0.05, ] 
+    
+    # return dataframe of significant variables
+    sigsdf <- rbind(sigsdf, out)
+    
+    
+  }
+  
+  # round variables to make it easier to read
+  sigsdf$SE <- round(sigsdf$SE, 3)
+  sigsdf$t.ratio <- round(sigsdf$t.ratio, 3)
+  sigsdf$p.value <- round(sigsdf$p.value, 3)
+  
+  # return the dataframe of significant variables
+  
+  return(sigsdf)
+}
+
+```
 
 **Note: in pairwise comparions, the data has been normalized, scaled, and log-transformed in MetaboAnalyst. An accompanying PDF report describes those steps.**
 
-#### Plasma vs tumor
+## Plasma vs tumor
 
 We would assume that the plasma and tumor tissue would differ significantly in their metabolic makeup, so this is really more of a "double-check" than an an analysis.
 
@@ -91,166 +220,133 @@ We would assume that the plasma and tumor tissue would differ significantly in t
 
 ```{r}
 # is there a difference between tissues?
-pvals <- data.frame()
 
-for(i in 1:length(aq)) {
-  mod <- aov(area ~ tissue.type, data = filter(aq, metabolite == metabs[i]))
-  pvals[i, "metabolite"] <- metabs[i]
-  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
-  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
-}
+tissues <- myAnova(variable = "tissue.type",
+                   df = aq,
+                   metabList = metabs)
 
-# pull significant p values into a table
-sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs)
+knitr::kable(tissues)
 ```
+
+
+```{r}
+## create table of means
+
+tukdf <- aq[aq$metabolite %in% tissues$metabolite, ]
+
+meansdf <- tukdf %>% 
+  group_by(tissue.type, metabolite) %>% 
+  summarize(mean = round(mean(area), 3)) %>% 
+  spread(key = tissue.type, value = mean)
+
+knitr::kable(meansdf, col.names = c("metabolite", "Plasma mean", "Tumor mean"))
+
+
+```
+
 
 ```{r}
 ## make boxplots to illustrate differences
 
-tukdf <- aq[aq$metabolite %in% sigs$metabolite, ]
+tukdf <- aq[aq$metabolite %in% tissue$metabolite, ]
 
 ggplot(data = tukdf, aes(x = tissue.type, y = area)) +
   geom_hline(yintercept = 0, color = "red") +
   geom_boxplot() +
   facet_wrap(~metabolite) 
+
 ```
 
-Since there are only two explanatory variables (plasma and tumor), this is technically a t-test so no Tukey's post-hoc is performed. Boxplots visulize the differences. The boxplots illustrate that the metabolites are all higher in plasma than tumor tissue. There seem to be several high outliers, even in the normalized data.The boxplots also illustrate that most metabolites have a positive log change in the plasma tissue and a negative log change in the tumor tissue.
+Since there are only two explanatory variables (plasma and tumor), this is technically a t-test so no Tukey's post-hoc is performed. Boxplots visulize the differences and a table of means is shown. Interestingly, the plasma metabolites are all higher than the tumor metabolites. There seem to be several high outliers, even in the normalized data.The boxplots also illustrate that most metabolites have a positive log change in the plasma tissue and a negative log change in the tumor tissue.
 
-#### Plasma D7 vs D21 v D35
+## Plasma D7 vs D21 v D35
 
 It's important for downstream analysis to first determine if the plasma metabolome change significantly from day 7, to day 21, to day 35. If there are differences, we will need to keep the days separate for downstream analyses; if not, we can likely lump them all together.  
 
-
 ```{r}
+
 
 # are there differences between time points?
 
-pvals <- data.frame()
+time <- myAnova(variable = "Time",
+                   df = plasma,
+                   metabList = plasmetabs)
 
-for(i in 1:length(plasmetabs)) {
-  mod <- aov(area ~ Time, data = filter(plasma, metabolite == plasmetabs[i]))
-  pvals[i, "metabolite"] <- plasmetabs[i]
-  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
-  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
-}
+knitr::kable(time)
 
-# pull significant p values into a table
-sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs)
-```
-
-To visualize the results, we can use a Tukey pos-hoc test OR estimated marginal means (least squares means) from the `emmeans` package.
-
-
-```{#r}
-
-
-require(emmeans)
-
-sigdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
-
-# perform ANOVA again and store Tukey variables
-Tmetabs <- unique(sigdf$metabolite)
-out <- data.frame()
-for(i in 1:length(Tmetabs)) {
-  # re-run the ANOVA
-  mod <- aov(area ~ Time, data = filter(sigdf, metabolite == Tmetabs[i]))
-  
-  # perform least-squares means
-  e <- as.data.frame(emmeans(mod, pairwise ~ Time)$contrasts)
-  e$metabolite <- Tmetabs[i]
-
-  # append to outDF
-  out <- rbind(out, e)
-}
-
-sigsdf <- out[out$p.value < 0.05 , ]
-knitr::kable(sigsdf)
 ```
 
 Another visualization tool is boxplots.
 
-```{#r}
+```{r}
+
 ## make boxplots to illustrate differences
 
-plotdf <- plasma[plasma$metabolite %in% sigsdf$metabolite, ]
+plotdf <- plasma[plasma$metabolite %in% time$metabolite, ]
 
-ggplot(data = plotdf, aes(x = Time, y = area)) +
+# split into three sets of plots so it's easier to see 
+
+plotdf1 <- plotdf[plotdf$metabolite %in% unique(plotdf$metabolite)[1:8],]
+plotdf2 <- plotdf[plotdf$metabolite %in% unique(plotdf$metabolite)[9:16],]
+plotdf3 <- plotdf[plotdf$metabolite %in% unique(plotdf$metabolite)[17:23],]
+
+# plot 1
+ggplot(data = plotdf1, aes(x = Time, y = area)) +
   geom_hline(yintercept = 0, color = "red") +
   geom_boxplot() +
   facet_wrap(~metabolite) 
+# plot 2
+ggplot(data = plotdf2, aes(x = Time, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
+  geom_boxplot() +
+  facet_wrap(~metabolite) 
+# plot 3
+ggplot(data = plotdf3, aes(x = Time, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
+  geom_boxplot() +
+  facet_wrap(~metabolite) 
+
 ```
 
 
 An ANOVA on each individual metabolite by Time shows that there are multiple metabolites that differ between the times, so when analyzing plasma metabolome we will keep Time as a separate factor. The Tukey tests indicate that most metabolites differ between either D7 and D35, or D21 and D35. Few (or none) indicate difference between D7 and D21.
 This should be explored further to examine if the differences are due to cancer development or if they can be attributed to other things like growth and metabolism.
 
-#### Four treatment groups
+## Four treatment groups
 
 The initial analyis is comparing all four treatment groups to each other in the 2x2 factorial style. The code follows this structure for pairwise comparisons with ANOVA:
 
 >This code is a one-way ANOVA between the log-transformed area under the curve (dependent variable) and the four treatment groups (independent variable) for the tumor tissue only. This ANOVA repeats in a "for loop" for all 136 aqueous metabolites, and stores the p values in a table. 
 
-##### Tumor tissue 
+### Tumor tissue 
 
 There are four significant metabolites; that is, four metabolites vary significantly between the four treatment groups in the tumor tissue. 
 
 ```{r collapse = TRUE}
 ### TUMOR
 
-pvals <- data.frame()
+# is there a difference between treatment types in tumor?
 
-# run the for loop
-for(i in 1:length(metabs)) {
-  mod <- aov(area ~ treatmentID, data = filter(tumor, metabolite == tumetabs[i]))
-  pvals[i, "metabolite"] <- tumetabs[i]
-  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
-  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
-   
-}
+sigs <- myAnova(variable = "treatmentID",
+                   df = tumor,
+                   metabList = tumetabs)
 
-# pull significant p values into a table
-sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs, col.names =  c("metabolite", "F value", "p value"))
+knitr::kable(sigs)
 
 ```
 
-To visualize the results, we can use a Tukey pos-hoc test.
 
-```{#r}
-sigdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
 
-# perform ANOVA again and store Tukey variables
-Tmetabs <- unique(sigdf$metabolite)
-out <- data.frame()
-for(i in 1:length(Tmetabs)) {
-  # re-run the ANOVA
-  mod <- aov(area ~ treatmentID, data = filter(tumor, metabolite == tumetabs[i]))
-  
-  # perform least-squares means
-  e <- as.data.frame(emmeans(mod, pairwise ~ treatmentID)$contrasts)
-  e$metabolite <- Tmetabs[i]
+```{r}
 
-  # append to outDF
-  out <- rbind(out, e)
-}
-
-sigsdf <- out[out$p.value < 0.05 , ]
-knitr::kable(sigsdf)
-```
-
-Another visualization tool is boxplots.  
-
-```{#r}
 ## make boxplots to illustrate differences
 
-tukdf <- tumor[tumor$metabolite %in% tukeyOut$metabolite, ]
+tukdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
 
 ggplot(data = tukdf, aes(x = treatmentID, y = area)) +
   geom_boxplot() +
-  facet_wrap(~metabolite) 
+  facet_wrap(~metabolite)
+  
 ```
 
 Quinolinate and Glucose both vary between two different treatments, which is why they are listed twice. It is important to note that dividing the data into four treatment groups rather than two (e.g. Exercise vs Sedentary) decreases the number of mice in each group, which is likely why there are fewer metabolites that are significant when comparing all 4 groups.
@@ -262,80 +358,49 @@ Since we clearly saw that there is a difference in the plasma aqueous metabolite
 
 ```{r}
 
-# get metabolites
-# df - plasma
-# list of metabolites - plasmetabs
+# is there a difference between treatments in Plasma?
 
-pvals <- data.frame()
+sigs <- myAnovaTime(variable = "treatmentID",
+                    df = plasma,
+                    metabList = plasmetabs)
 
-# run the for loop
-for(i in 1:length(metabs)) {
-  mod1 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
-  pvals[i, "metabolite"] <- metabs[i]
-  pvals[i, "fStatD7"] <- round(summary(mod1)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
-  mod2 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "21"))
-  pvals[i, "fStatD21"] <- round(summary(mod2)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
-  mod3 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "35"))
-  pvals[i, "fStatD35"] <- round(summary(mod3)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
-  
-}
-
-sigs <- rbind(pvals[pvals$pvalD7 < 0.05, ],
-              pvals[pvals$pval21 < 0.05, ],
-              pvals[pvals$pval35 < 0.05, ])
+knitr::kable(sigs)
               
-
 ```
+
+
 
 ```{r}
 
-
-sigdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
-
-# perform ANOVA again and store Tukey variables
-Tmetabs <- unique(sigdf$metabolite)
-
-for(i in 1:length(Tmetabs)) {
-  # re-run the ANOVA and perform Tukey post-hoc test
-  mod1 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
-  tuk1 <- TukeyHSD(mod1)$treatmentID 
-  tuk1 <- cbind(tuk1, Time = 7)
-  mod2 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "21"))
-  tuk2 <- TukeyHSD(mod2)$treatmentID
-  tuk2 <- cbind(tuk2, Time = 21)
-  mod3 <- aov(area~ treatmentID, data = filter(plasma, metabolite == plasmetabs[i] & Time == "35"))
-  tuk3 <- TukeyHSD(mod3)$treatmentID
-  tuk3 <- cbind(tuk3, Time = 35)
-  
-  # store significant p values
-  
-  tukmat <- rbind(tuk1, tuk2, tuk3)
-  sig <- data.frame(metabolite = as.character(Tmetabs[i]),
-                    time = tukmat[,"Time"],
-                    contrast = dimnames(tukmat)[[1]],
-                    p = round(tukmat[,"p adj"], 4)
-                    )
-  tukeyOut <- sig[sig$p < 0.05, ]
-  
-}
-
-knitr::kable(tukeyOut)
-```
-
-In this test there are several significant metabolites, however - a Tukey post-hoc test shows no significant differences.
-
-```{#r}
-
 ## make boxplots to illustrate differences
 
-tukdf <- plasma[plasma$metabolite %in% tukeyOut$metabolite, ]
+plotdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
-ggplot(data = tukdf, aes(x = treatmentID, y = area)) +
+# split into three sets of plots so it's easier to see 
+
+plotdf1 <- plotdf[plotdf$Time %in% "7",]
+plotdf2 <- plotdf[plotdf$Time %in% "21",]
+plotdf3 <- plotdf[plotdf$Time %in% "35",]
+
+# plot 1
+ggplot(data = plotdf1, aes(x = treatmentID, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
   geom_boxplot() +
-  facet_wrap(Time~metabolite) 
+  facet_wrap(~metabolite) +
+  ggtitle("Day 7")
+# plot 2
+ggplot(data = plotdf2, aes(x = treatmentID, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
+  geom_boxplot() +
+  facet_wrap(~metabolite)  +
+  ggtitle("Day 21")
+# plot 3
+ggplot(data = plotdf3, aes(x = treatmentID, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
+  geom_boxplot() +
+  facet_wrap(~metabolite) +
+  ggtitle("Day 35")
+
 ```
 
 
@@ -350,29 +415,17 @@ There is one significant metabolite: Quinolinate.
 ```{r collapse = TRUE}
 ### TUMOR
 
-# make separate dataframe for the tumor tissue
-# df - tumor
-# metabolite list - tumetabs
+# Difference between Exercise treatments in tumor tissue
 
-pvals <- data.frame()
+sigs <- myAnova(variable = "Exercise",
+                df = tumor,
+                metabList = tumetabs)
 
-# run the for loop
-for(i in 1:length(tumetabs)) {
-  mod <- aov(area ~ Exercise, data = filter(tumor, metabolite == tumetabs[i]))
-  pvals[i, "metabolite"] <- metabs[i]
-  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
-  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
-   
-}
-
-# pull significant p values into a table
-sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs, col.names =  c("metabolite", "F value",  "p value"))
+knitr::kable(sigs)
 
 ```
 
 
-Since there are only two levels, this is basically a t-test and we do not need a Tukey's post hoc. 
 
 ```{r}
 ## make boxplots to illustrate differences
@@ -382,6 +435,7 @@ tukdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
 ggplot(data = tukdf, aes(x = Exercise, y = area)) +
   geom_boxplot() +
   facet_wrap(~metabolite) 
+
 ```
 
 
@@ -391,43 +445,41 @@ Quinolinate is higher in the Sedentary than Exercising group.
 
 ```{r}
 
-# get metabolites
+# Difference between Exercise treatments in tumor tissue
 
-# list of metabolites - plasmetabs
+sigs <- myAnovaTime(variable = "Exercise",
+                df = plasma,
+                metabList = plasmetabs)
 
-pvals <- data.frame()
-
-# run the for loop
-for(i in 1:length(plasmetabs)) {
-  mod1 <- aov(area~ Exercise, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
-  pvals[i, "metabolite"] <- metabs[i]
-  pvals[i, "fStatD7"] <- round(summary(mod1)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
-  mod2 <- aov(area~ Exercise, data = filter(plasma, metabolite == plasmetabs[i] & Time == "21"))
-  pvals[i, "fStatD21"] <- round(summary(mod2)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
-  mod3 <- aov(area~ Exercise, data = filter(plasma, metabolite == plasmetabs[i] & Time == "35"))
-  pvals[i, "fStatD35"] <- round(summary(mod3)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
-  
-}
-
-sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
-knitr::kable(sigs, col.names =  c("metabolite", "F value D7", "p value D7", "F value D21", "p value D21", "F value D35", "p value D35"))
+knitr::kable(sigs)
 
 ```
 
 ```{r}
-## too many to look at boxplots - instead look at which group is higher
+## make the table of means
 
+tukdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
+meansdf <- tukdf %>% 
+  group_by(Exercise, metabolite) %>% 
+  summarize(mean = round(mean(area), 3)) %>% 
+  spread(key = Exercise, value = mean)
+
+knitr::kable(meansdf, col.names = c("metabolite", "EX mean", "SED mean"))
+
+```
+
+```{r}
+
+## make boxplots to illustrate differences
 tukdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
 ggplot(data = tukdf, aes(x = Exercise, y = area)) +
   geom_boxplot() +
-  facet_wrap(Time~metabolite) 
+  facet_wrap(~metabolite) 
 
 ```
+
 
 There are multiple significant metabolites between Exercise treatments in the plasma tissue, so these are difficult to visualize with boxplots. 
 
@@ -439,40 +491,41 @@ Two weight groups: energy restricted and ad libitum fed
 ##### Tumor
 
 
-```{r collapse = TRUE}
+```{r}
+
 ### TUMOR
 
-# make separate dataframe for the tumor tissue
-# df - tumor
-# metabolite list - tumetabs
+# Difference in tumor tissue between Weight treatments
 
-pvals <- data.frame()
+sigs <- myAnova(variable = "Weight",
+                df = tumor,
+                metabList = tumetabs)
 
-# run the for loop
-for(i in 1:length(metabs)) {
-  mod <- aov(area ~ Weight, data = filter(tumor, metabolite == tumetabs[i]))
-  pvals[i, "metabolite"] <- tumetabs[i]
-  pvals[i, "fStat"] <- round(summary(mod)[[1]][["F value"]][1], 4)
-  pvals[i, "pval"] <- round(summary(mod)[[1]][["Pr(>F)"]][1], 4)
-   
-}
-
-# pull significant p values into a table
-sigs <- pvals[pvals$pval < 0.05,]
-knitr::kable(sigs, col.names =  c("metabolite", "F value", "p value"))
+knitr::kable(sigs)
 
 ```
 
-Since there are only two levels, this is basically a t-test and we do not need a Tukey's post hoc. 
+```{r}
+## make the table of means
+
+tukdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
+
+meansdf <- tukdf %>% 
+  group_by(Weight, metabolite) %>% 
+  summarize(mean = round(mean(area), 3)) %>% 
+  spread(key = Weight, value = mean)
+
+knitr::kable(meansdf, col.names = c("metabolite", "AL mean", "ER mean"))
+
+```
 
 ```{r}
 ## make boxplots to illustrate differences
-tukdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
+tukdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
 
 ggplot(data = tukdf, aes(x = Weight, y = area)) +
   geom_boxplot() +
-  facet_wrap(Time~metabolite) 
-
+  facet_wrap(~metabolite) 
 
 ```
 
@@ -480,36 +533,20 @@ ggplot(data = tukdf, aes(x = Weight, y = area)) +
 
 ```{r}
 
-# get metabolites
+### PLASMA
 
-# list of metabolites - plasmetabs
+# Difference in plasma tissue between Weight treatments
 
-pvals <- data.frame()
+sigs <- myAnovaTime(variable = "Weight",
+                df = plasma,
+                metabList = plasmetabs)
 
-# run the for loop
-for(i in 1:length(plasmetabs)) {
-  mod1 <- aov(area~ Weight, data = filter(plasma, metabolite == plasmetabs[i] & Time == "7"))
-  pvals[i, "metabolite"] <- metabs[i]
-  pvals[i, "fStatD7"] <- round(summary(mod1)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD7"] <- round(summary(mod1)[[1]][["Pr(>F)"]][1], 4)
-  mod2 <- aov(area~ Weight, data = filter(plasma, metabolite == plasmetabs[i] & Time == "21"))
-  pvals[i, "fStatD21"] <- round(summary(mod2)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD21"] <- round(summary(mod2)[[1]][["Pr(>F)"]][1], 4)
-  mod3 <- aov(area~ Weight, data = filter(plasma, metabolite == plasmetabs[i] & Time == "35"))
-  pvals[i, "fStatD35"] <- round(summary(mod3)[[1]][["F value"]][1], 4)
-  pvals[i, "pvalD35"] <- round(summary(mod3)[[1]][["Pr(>F)"]][1], 4)
-  
-}
-
-sigs <- pvals[pvals[,2:4] < 0.05, ] %>% na.omit()
-knitr::kable(sigs, col.names =  c("metabolite", "F value D7", "p value D7", "F value D21", "p value D21", "F value D35", "p value D35"))
+knitr::kable(sigs)
 
 ```
 
-However, there are too many significant metabolites to utilize boxplots, so the table below shows means and standard deviations for each metabolite.
-
 ```{r}
-## create table of means
+## make the table of means
 
 tukdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
@@ -520,6 +557,40 @@ meansdf <- tukdf %>%
 
 knitr::kable(meansdf, col.names = c("metabolite", "AL mean", "ER mean"))
 
+```
+
+```{r}
+
+## make boxplots to illustrate differences
+
+plotdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
+
+# split into three sets of plots so it's easier to see 
+
+plotdf1 <- plotdf[plotdf$Time %in% "7",]
+plotdf2 <- plotdf[plotdf$Time %in% "21",]
+plotdf3 <- plotdf[plotdf$Time %in% "35",]
+
+# plot 1
+ggplot(data = plotdf1, aes(x = Weight, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
+  geom_boxplot() +
+  facet_wrap(~metabolite) +
+  ggtitle("Day 7")
+# plot 2
+ggplot(data = plotdf2, aes(x = Weight, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
+  geom_boxplot() +
+  facet_wrap(~metabolite)  +
+  ggtitle("Day 21")
+# plot 3
+ggplot(data = plotdf3, aes(x = Weight, y = area)) +
+  geom_hline(yintercept = 0, color = "red") +
+  geom_boxplot() +
+  facet_wrap(~metabolite) +
+  ggtitle("Day 35")
 
 ```
+
+
 
