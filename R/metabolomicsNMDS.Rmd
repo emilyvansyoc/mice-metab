@@ -21,7 +21,7 @@ See "metabolomicsAnalysis.Rmd" for details
 require(ggordiplots)
 require(vegan)
 
-# source myNMDS function
+# source myNMDS function from Github
 source("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/R/FUNCTIONmyNMDS.R")
 
 # read un-normalized data
