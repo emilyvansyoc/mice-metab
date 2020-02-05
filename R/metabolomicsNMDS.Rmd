@@ -20,6 +20,8 @@ See "metabolomicsAnalysis.Rmd" for details
 # read data
 require(ggordiplots)
 require(vegan)
+require(tidyr)
+require(dplyr)
 
 # source myNMDS function from Github
 source("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/R/FUNCTIONmyNMDS.R")
