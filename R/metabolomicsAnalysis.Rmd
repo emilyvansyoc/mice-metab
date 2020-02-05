@@ -70,7 +70,7 @@ plasma <- aq %>%
     Label %in% "plasmaD21" ~ "21",
     Label %in% "plasmaD35" ~ "35"
   ), ordered = TRUE, levels = c("7", "21", "35")))
-
+# tumor df 
 tumor <- filter(aq, Label == "tumor")
 
 # get the separate metabolites for each dataframe for downstream analysis
@@ -141,9 +141,13 @@ sigs <- pvals[pvals$pval < 0.05,]
 knitr::kable(sigs)
 ```
 
-To visualize the results, we can use a Tukey pos-hoc test.
+To visualize the results, we can use a Tukey pos-hoc test OR estimated marginal means (least squares means) from the `emmeans` package.
 
 ```{r}
+
+
+require(emmeans)
+
 sigdf <- plasma[plasma$metabolite %in% sigs$metabolite, ]
 
 # perform ANOVA again and store Tukey variables
