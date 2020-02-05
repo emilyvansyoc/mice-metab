@@ -143,7 +143,8 @@ knitr::kable(sigs)
 
 To visualize the results, we can use a Tukey pos-hoc test OR estimated marginal means (least squares means) from the `emmeans` package.
 
-```{r}
+
+```{#r}
 
 
 require(emmeans)
@@ -171,7 +172,7 @@ knitr::kable(sigsdf)
 
 Another visualization tool is boxplots.
 
-```{r}
+```{#r}
 ## make boxplots to illustrate differences
 
 plotdf <- plasma[plasma$metabolite %in% sigsdf$metabolite, ]
@@ -218,7 +219,7 @@ knitr::kable(sigs, col.names =  c("metabolite", "F value", "p value"))
 
 To visualize the results, we can use a Tukey pos-hoc test.
 
-```{r}
+```{#r}
 sigdf <- tumor[tumor$metabolite %in% sigs$metabolite, ]
 
 # perform ANOVA again and store Tukey variables
@@ -242,7 +243,7 @@ knitr::kable(sigsdf)
 
 Another visualization tool is boxplots.  
 
-```{r}
+```{#r}
 ## make boxplots to illustrate differences
 
 tukdf <- tumor[tumor$metabolite %in% tukeyOut$metabolite, ]
