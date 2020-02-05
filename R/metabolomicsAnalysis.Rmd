@@ -248,7 +248,7 @@ knitr::kable(meansdf, col.names = c("metabolite", "Plasma mean", "Tumor mean"))
 ```{r}
 ## make boxplots to illustrate differences
 
-tukdf <- aq[aq$metabolite %in% tissue$metabolite, ]
+tukdf <- aq[aq$metabolite %in% tissues$metabolite, ]
 
 ggplot(data = tukdf, aes(x = tissue.type, y = area)) +
   geom_hline(yintercept = 0, color = "red") +
@@ -351,7 +351,7 @@ ggplot(data = tukdf, aes(x = treatmentID, y = area)) +
 
 Quinolinate and Glucose both vary between two different treatments, which is why they are listed twice. It is important to note that dividing the data into four treatment groups rather than two (e.g. Exercise vs Sedentary) decreases the number of mice in each group, which is likely why there are fewer metabolites that are significant when comparing all 4 groups.
 
-##### Plasma
+### Plasma
 
 
 Since we clearly saw that there is a difference in the plasma aqueous metabolites between days (above), we will keep Time as a separate factor moving forward. Therefore, there are 3 separate ANOVAs performed for each test; one for each time point. The results of each time point are independent of the others.
@@ -404,11 +404,11 @@ ggplot(data = plotdf3, aes(x = treatmentID, y = area)) +
 ```
 
 
-#### Exercise vs. Sedentary
+## Exercise vs. Sedentary
 
 Two exercise groups: exercised and exercise-restricted (sedentary).
 
-##### Tumor
+### Tumor
 
 There is one significant metabolite: Quinolinate.
 
@@ -441,7 +441,7 @@ ggplot(data = tukdf, aes(x = Exercise, y = area)) +
 
 Quinolinate is higher in the Sedentary than Exercising group.
 
-##### Plasma
+### Plasma
 
 ```{r}
 
@@ -484,11 +484,11 @@ ggplot(data = tukdf, aes(x = Exercise, y = area)) +
 There are multiple significant metabolites between Exercise treatments in the plasma tissue, so these are difficult to visualize with boxplots. 
 
 
-#### Weight Restricted vs Ad-lib Fed
+## Weight Restricted vs Ad-lib Fed
 
 Two weight groups: energy restricted and ad libitum fed
 
-##### Tumor
+### Tumor
 
 
 ```{r}
@@ -529,7 +529,7 @@ ggplot(data = tukdf, aes(x = Weight, y = area)) +
 
 ```
 
-##### Plasma
+### Plasma
 
 ```{r}
 
