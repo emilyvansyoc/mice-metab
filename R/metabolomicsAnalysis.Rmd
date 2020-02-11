@@ -3,8 +3,7 @@ title: "Metabolomic Analysis"
 author: "Emily Bean"
 date: "January 10, 2020"
 output:
-  html_document:
-    toc: true
+  rmarkdown::github_document
 ---
 
 ```{r setup, echo = FALSE}
