@@ -1,0 +1,170 @@
+---
+title: "Metabolomics PCA"
+author: "Emily Bean"
+date: "2/12/2020"
+output:
+  rmarkdown::github_document
+---
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE)
+
+```
+
+
+# Overview
+
+This script follows the same structure as `metabolmicsAnalysis.Rmd` but performs a principal components analysis (PCA) on each data subset and then creates a biplot for visualization. 
+
+#### General Results
+
+The only comparisons that seem to have very clear and distinct clustering are the two tissue types (plasma v. tumor). However, the ellipses do not represent 95% confidence intervals (unlike NMDS).
+
+# Pairwise comparisons  
+*All comparisons made for both tumor and plasma tissues*
+
+1. Plasma vs tumor
+2. Plasma D7 vs D21 vd D35  
+3. 4 treatment groups (2x2 factorial)  
+4. Exercise vs sedentary  
+5. Weight gain vs weight maintenance  
+
+
+
+```{r}
+## get data
+
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+
+# install github package ggbiplot
+if(!require(ggbiplot)) {
+  
+  library(devtools)
+  install_github("vqv/ggbiplot")
+  require(ggbiplot)
+} else {require(ggbiplot)}
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
+
+# read all aqueous data
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
+  mutate(tissue.type =
+           case_when(Label %in% "tumor" ~ "tumor",
+                     Label %in% "plasmaD7" ~ "plasma",
+                     Label %in% "plasmaD21" ~ "plasma",
+                     Label %in% "plasmaD35" ~ "plasma"))
+
+## Make all data horizontal for PCAs
+aqh <- aq %>% 
+  spread(key = metabolite, value = area)
+
+# plasma only
+plasmah <- aqh %>% 
+  filter(tissue.type == "plasma") %>% 
+    mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "7",
+    Label %in% "plasmaD21" ~ "21",
+    Label %in% "plasmaD35" ~ "35"
+  ), ordered = TRUE, levels = c("7", "21", "35")))
+
+# tumor only
+tumorh <- aqh %>% 
+  filter(tissue.type == "tumor")
+```
+
+## Plasma vs Tumor
+
+```{r}
+
+# create PCA on only the metabolomic data
+dat <- aqh %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type))
+pca <- prcomp(aqh[, 8:ncol(aqh)], center = TRUE)
+
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = aqh$tissue.type, ellipse = TRUE) +
+  ggtitle("Tissue type")
+```
+
+## Plasma D7 vs D21 vs D35
+
+```{r}
+
+# create PCA on only the metabolomic data
+dat <- plasmah %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type, Time))
+pca <- prcomp(dat, center = TRUE)
+
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = plasmah$Time, ellipse = TRUE) +
+  ggtitle("Plasma: Time")
+```
+
+## Tumor
+
+
+### Four Treatment Groups (2x2 factorial)
+
+```{r}
+
+# create PCA on only the metabolomic data
+dat <- tumorh %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type))
+pca <- prcomp(dat, center = TRUE)
+
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = tumorh$treatmentID, ellipse = TRUE) +
+  ggtitle("Tumor: 4 treatment groups")
+```
+
+### Exercise vs. Sedentary
+
+```{r}
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = tumorh$Exercise, ellipse = TRUE) +
+  ggtitle("Tumor: Exercise")
+
+```
+
+### Weight gain vs. weight maintenance
+
+```{r}
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = tumorh$Weight, ellipse = TRUE) +
+  ggtitle("Tumor: Weight")
+
+```
+
+## Plasma
+
+### Four Treatment Groups (2x2 factorial)
+
+```{r}
+
+# create PCA on only the metabolomic data
+dat <- plasmah %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type, Time))
+pca <- prcomp(dat, center = TRUE)
+
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = plasmah$treatmentID, ellipse = TRUE) +
+  ggtitle("Plasma: 4 treatment groups")
+```
+
+### Exercise vs. Sedentary
+
+```{r}
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = plasmah$Exercise, ellipse = TRUE) +
+  ggtitle("Plasma: Exercise")
+
+```
+
+### Weight gain vs. weight maintenance
+
+```{r}
+# create biplot
+ggbiplot(pca, var.axes = FALSE, groups = plasmah$Weight, ellipse = TRUE) +
+  ggtitle("Plasma: Weight")
+
+```
