@@ -15,11 +15,10 @@ knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse =
 
 # Overview
 
-This script follows the same structure as `metabolmicsAnalysis.Rmd` but performs a principal components analysis (PCA) on each data subset and then creates a biplot for visualization. 
+This script follows the same structure as `metabolmicsAnalysis.Rmd` but performs a principal components analysis (PCA) on each data subset and then creates several diagnostics plots, then a grouping PCA and a biplot. 
 
-#### General Results
+The top eigenvalues are shown for each PCA.
 
-The only comparisons that seem to have very clear and distinct clustering are the two tissue types (plasma v. tumor). However, the ellipses do not represent 95% confidence intervals (unlike NMDS).
 
 # Pairwise comparisons  
 *All comparisons made for both tumor and plasma tissues*
@@ -37,18 +36,15 @@ The only comparisons that seem to have very clear and distinct clustering are th
 
 require(dplyr)
 require(tidyr)
-require(ggplot2)
-
-# install github package ggbiplot
-if(!require(ggbiplot)) {
-  
-  library(devtools)
-  install_github("vqv/ggbiplot")
-  require(ggbiplot)
-} else {require(ggbiplot)}
+require(factoextra)
+require(FactoMineR)
+require(corrplot)
 
 # set ggplot2 them
 ggplot2::theme_set(theme_bw())
+
+# read custom PCA function
+source("https://raw.githubusercontent.com/EmilyB17/ganda-lab/master/MyPCAFunction.R")
 
 # read all aqueous data
 aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
@@ -78,93 +74,145 @@ tumorh <- aqh %>%
 
 ## Plasma vs Tumor
 
+The top 4 dimensions only explain 69% of the variance. The metabolites that seem to contribute most to the first 2 dimensions are N-acetyl-glutamine, Ribose, Citrulline, Indole-3-carboxylic acid, and Anthrilate.
+
+Plasma and tumor tissue cluster very strongly; Glucose-1-6-phosphate and UDP D-glucuronate are both more correlated with the tumor tissue, while the other top metabolites are clustered with the plasma samples.
+
 ```{r}
 
-# create PCA on only the metabolomic data
-dat <- aqh %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type))
-pca <- prcomp(aqh[, 8:ncol(aqh)], center = TRUE)
+# perform PCA
+data <- aqh %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type))
 
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = aqh$tissue.type, ellipse = TRUE) +
-  ggtitle("Tissue type")
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = aqh$tissue.type,
+         groupname = "Tissue Type")
 ```
 
 ## Plasma D7 vs D21 vs D35
 
+This data fits the PCA poorly; the first 6 dimensions only explain about 64% of the data (although this could be partially due to the large number of variables). However, the scree plot shows a large "elbow" between Dim2 and Dim3, so looking at the first two dimensions is sufficient. The top contributing metabolites are Citrulline, Trehalose-6-phosphate, 2-keto-D-gluconate, Hydroxyphenylacetic acid, and Threonine Homoserine.
+
+The Time groups cluster all together, indicating that there is not a clear distinction between metabolic communities over time.
+
 ```{r}
 
-# create PCA on only the metabolomic data
-dat <- plasmah %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type, Time))
-pca <- prcomp(dat, center = TRUE)
+# perform PCA
+data <- plasmah %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type, Time))
 
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = plasmah$Time, ellipse = TRUE) +
-  ggtitle("Plasma: Time")
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmah$Time,
+         groupname = "Time")
 ```
 
 ## Tumor
 
 
-### Four Treatment Groups (2x2 factorial)
+The scree plot shows a sharp decline between Dim1 and Dim2, as well as Dim2 and Dim3. The top contributing metabolites are Lactate, Phenylalanine, UDP-D-glucose, Ketoleucine, and Glutathione disulfide. The correlation plots show a clear distinction between groups of metabolites that cluster together.
+
+The diagnostic plots show the PCA performed on the entire tumor dataset; there is no grouping variable involved.
 
 ```{r}
 
-# create PCA on only the metabolomic data
-dat <- tumorh %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type))
-pca <- prcomp(dat, center = TRUE)
+# perform PCA
+data <- tumorh %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type))
 
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = tumorh$treatmentID, ellipse = TRUE) +
-  ggtitle("Tumor: 4 treatment groups")
+# print plots
+myPCA(dat = data)
+```
+
+
+### Four Treatment Groups (2x2 factorial)
+
+The 95% confidence intervals are very wide. Additionally, the correlating metabolites have short arrows, indicating a weak correlation. However, it seems that EX_ER and SED_ER are more tightly clustered than EX_AL and SED_AL.
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumorh$treatmentID,
+         groupname = "Treatment - Tumor")
 ```
 
 ### Exercise vs. Sedentary
 
-```{r}
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = tumorh$Exercise, ellipse = TRUE) +
-  ggtitle("Tumor: Exercise")
+The data is clustered together in a line with no apparent pattern.
 
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumorh$Exercise,
+         groupname = "Exercise - Tumor")
 ```
 
 ### Weight gain vs. weight maintenance
 
+In this group there is a tighter clustering in the ER group compared to the AL group. 
 ```{r}
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = tumorh$Weight, ellipse = TRUE) +
-  ggtitle("Tumor: Weight")
-
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumorh$Weight,
+         groupname = "Weight - Tumor")
 ```
 
 ## Plasma
 
-### Four Treatment Groups (2x2 factorial)
+
+There is also a fairly low percentage of variance explained by the top 6 eigenvalues (64% cumulative). The scree plot shows a sharp elbow between Dim2 and Dim3, so there is still a higher amount of variance explained by the first 2 axes. The top contributing metabolites are Citrulline, Trehalose-6-phosphate, 2-keto-D-gluconate, Hydroxyphenylacetic acid, and Threonine homoserine. Similarly to the tumor tissue, the plasma correlation plots seem to strongly cluster.
+
 
 ```{r}
 
-# create PCA on only the metabolomic data
-dat <- plasmah %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type, Time))
-pca <- prcomp(dat, center = TRUE)
+# perform PCA
+data <- plasmah %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type, Time))
 
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = plasmah$treatmentID, ellipse = TRUE) +
-  ggtitle("Plasma: 4 treatment groups")
+# print plots
+myPCA(dat = data)
+```
+
+### Four Treatment Groups (2x2 factorial)
+
+The arrows on the biplot are longer than the arrows in the tissue tumor, indicating a stronger correlation between the clusters and the top contributing metabolites. There is no clear pattern to the data.
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmah$treatmentID,
+         groupname = "Treatment - Plasma")
 ```
 
 ### Exercise vs. Sedentary
 
-```{r}
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = plasmah$Exercise, ellipse = TRUE) +
-  ggtitle("Plasma: Exercise")
+The first PCA plot shows that there are some samples with wide variance, notably most are in the Exercise group.
 
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmah$Exercise,
+         groupname = "Exercise - Plasma")
 ```
 
 ### Weight gain vs. weight maintenance
 
-```{r}
-# create biplot
-ggbiplot(pca, var.axes = FALSE, groups = plasmah$Weight, ellipse = TRUE) +
-  ggtitle("Plasma: Weight")
+There is also no clear pattern to this data.
 
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmah$Weight,
+         groupname = "Weight- Plasma")
 ```
