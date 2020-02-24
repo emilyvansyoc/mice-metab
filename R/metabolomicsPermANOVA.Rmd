@@ -1,0 +1,160 @@
+---
+title: "Metabolomics PermANOVA"
+author: "Emily Bean"
+date: "February 23, 2020"
+output:
+  rmarkdown::github_document
+---
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE)
+
+```
+
+# Overview
+
+This script follows the same structure as `metabolmicsAnalysis.Rmd` but performs a permutational ANOVA on the entire metabolomics set. The data is scaled from 0 to 1, and then a Bray-Curtis distance matrix is created. A pairwise permutational ANOVA (PERMANOVA) on the data based on the grouping variable.
+
+This analysis results in a pairwise comparison on the "structure" of the data as a "community".
+
+
+# Pairwise comparisons  
+*All comparisons made for both tumor and plasma tissues*
+
+1. Plasma vs tumor
+2. Plasma D7 vs D21 vd D35  
+3. 4 treatment groups (2x2 factorial)  
+4. Exercise vs sedentary  
+5. Weight gain vs weight maintenance  
+
+
+
+```{r}
+## get data
+
+require(dplyr)
+require(tidyr)
+require(vegan)
+require(pairwiseAdonis)
+
+# read all aqueous data
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
+  mutate(tissue.type =
+           case_when(Label %in% "tumor" ~ "tumor",
+                     Label %in% "plasmaD7" ~ "plasma",
+                     Label %in% "plasmaD21" ~ "plasma",
+                     Label %in% "plasmaD35" ~ "plasma"))
+
+## Make all data horizontal for PCAs
+aqh <- aq %>% 
+  spread(key = metabolite, value = area)
+
+# standardize the data
+aqhstand <- decostand(aqh[ , 8:ncol(aqh)], method = "range", MARGIN = 2)
+
+# make a distance matrix
+aqhdis <- vegdist(aqhstand, method = "bray")
+
+## plasma only
+plasmah <- aqh %>% 
+  filter(tissue.type == "plasma") %>% 
+    mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "7",
+    Label %in% "plasmaD21" ~ "21",
+    Label %in% "plasmaD35" ~ "35"
+  ), ordered = TRUE, levels = c("7", "21", "35")))
+
+# this data has an extra column; remove for standardization
+plasmst <- plasmah %>% select(-c(id, Label, mouseID, treatmentID, Exercise, Weight, tissue.type, Time))
+
+# standardize the data
+plasmahstand <- decostand(plasmst, method = "range", MARGIN = 2)
+
+# make a distance matrix
+plasmahdis <- vegdist(plasmahstand, method = "bray")
+
+## tumor only
+tumorh <- aqh %>% 
+  filter(tissue.type == "tumor")
+
+# standardize the data
+tumorhstand <- decostand(tumorh[ , 8:ncol(tumorh)], method = "range", MARGIN = 2)
+
+# make a distance matrix
+tumorhdis <- vegdist(tumorhstand, method = "bray")
+
+```
+
+
+## Plasma vs Tumor
+
+```{r}
+# perform pairwise ADONIS for the treatment group
+
+pairwise.adonis2(aqhdis ~ tissue.type, data = aqh)
+
+```
+
+
+## Plasma D7 vs D21 vs D35
+
+```{r}
+# perform pairwise ADONIS for the treatment group
+
+pairwise.adonis2(plasmahdis ~ Time, data = plasmah)
+
+```
+
+
+## Tumor
+
+
+### Four Treatment Groups (2x2 factorial)
+
+```{r}
+# perform pairwise ADONIS for the treatment group
+
+pairwise.adonis2(tumorhdis ~ treatmentID, data = tumorh)
+
+```
+
+### Exercise vs. Sedentary
+
+
+```{r}
+# perform pairwise ADONIS for the treatment group
+
+pairwise.adonis2(tumorhdis ~ Exercise, data = tumorh)
+
+```
+
+### Weight gain vs. weight maintenance
+
+```{r}
+# perform pairwise ADONIS for the treatment group
+
+pairwise.adonis2(tumorhdis ~ Weight, data = tumorh)
+
+```
+
+## Plasma
+
+
+### Exercise vs. Sedentary
+
+```{r}
+# perform pairwise ADONIS for the treatment group
+
+pairwise.adonis2(plasmahdis ~ Exercise, data = plasmah)
+
+```
+
+### Weight gain vs. weight maintenance
+
+```{r}
+# perform pairwise ADONIS for the treatment group
+
+pairwise.adonis2(plasmahdis ~ Weight, data = plasmah)
+
+```
