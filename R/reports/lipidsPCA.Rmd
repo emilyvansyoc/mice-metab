@@ -1,0 +1,191 @@
+---
+title: "Metabolomics PCA"
+author: "Emily Bean"
+date: "2/12/2020"
+output:
+  rmarkdown::github_document
+---
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE)
+
+```
+
+# Overview
+
+This script performs a principal components analysis (PCA) on each data subset and then creates several diagnostics plots, then a grouping PCA and a biplot. 
+
+The top eigenvalues are shown for each PCA.
+
+
+# Pairwise comparisons  
+*All comparisons made for both tumor and plasma tissues*
+
+1. Plasma vs tumor
+2. Plasma D7 vs D21 vd D35  
+3. 4 treatment groups (2x2 factorial)  
+4. Exercise vs sedentary  
+5. Weight gain vs weight maintenance  
+
+```{r}
+## get data
+
+require(dplyr)
+require(tidyr)
+require(factoextra)
+require(FactoMineR)
+require(corrplot)
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
+
+# read custom PCA function
+source("https://raw.githubusercontent.com/EmilyB17/ganda-lab/master/MyPCAFunction.R")
+
+# read all lipids data
+lip <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allLipidsCleaned.txt", header = TRUE, stringsAsFactors = FALSE) 
+
+## Make all data horizontal for PCAs
+liph <- lip %>% 
+  select(-ion) %>% 
+  spread(key = lipid, value = log.area)
+
+# plasma only
+plasmah <- liph %>% 
+  filter(tissue.type == "plasma") %>% 
+  mutate(Time = sapply(strsplit(SampleName, "_"), `[`, 1)) %>% 
+  mutate(Time = factor(Time, ordered = TRUE, levels = c("D7", "D21", "D35")))
+
+# tumor only
+tumorh <- liph %>% 
+  filter(tissue.type == "tumor")
+```
+
+
+
+
+
+## Plasma vs tumor
+
+```{r}
+
+# perform PCA
+data <- liph %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = liph$tissue.type,
+         groupname = "Tissue Type")
+```
+
+
+## Plasma D7 vs D21 vd D35 
+
+```{r}
+
+# perform PCA
+data <- plasmah %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight, Time))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping =  plasmah$Time,
+         groupname = "Plasma - Time")
+```
+
+## Tumor 
+
+### 4 treatment groups (2x2 factorial)
+
+```{r}
+
+# perform PCA
+data <- tumorh %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumorh$treatmentID,
+         groupname = "Tumor - 2x2 factorial")
+```
+
+### Exercise vs sedentary
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumorh$Exercise,
+         groupname = "Tumor - Exercise")
+```
+
+### Weight gain vs weight maintenance
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumorh$Weight,
+         groupname = "Tumor - Weight")
+```
+
+## Plasma
+
+### 4 treatment groups
+
+```{r}
+
+# perform PCA
+data <- plasmah %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight, Time))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmah$treatmentID,
+         groupname = "Plasma - 2x2 factorial")
+```
+
+### Exercise vs sedentary
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmah$Exercise,
+         groupname = "Plasma - Exercise")
+```
+
+### Weight gain vs weight maintenance
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmah$Weight,
+         groupname = "Plasma - Weight")
+```
+
+
+
