@@ -1,4 +1,4 @@
-Metabolomics PCA
+Lipidomics PCA
 ================
 Emily Bean
 2/12/2020

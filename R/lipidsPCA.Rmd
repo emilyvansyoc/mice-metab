@@ -1,5 +1,5 @@
 ---
-title: "Metabolomics PCA"
+title: "Lipidomics PCA"
 author: "Emily Bean"
 date: "2/12/2020"
 output:
