@@ -2,7 +2,8 @@
 title: "Lipidomics Analysis by Functional Group"
 author: "Emily Bean"
 date: "March 12, 2020"
-output: html_document
+output: 
+  rmarkdown::github_document
 ---
 
 ```{r setup, echo = FALSE}
@@ -239,6 +240,27 @@ knitr::kable(mod)
 
 ```
 
+
+```{r}
+
+sigsdf <- plasma %>% 
+  # get only significant lipids
+  filter(group %in% unique(as.character(mod$lipid))) %>% 
+  group_by(Time, group) %>% 
+  # get the mean and sd
+  summarize(mean = round(mean(log.area, na.rm = TRUE), 3),
+            sd = round(sd(log.area, na.rm = TRUE), 3)) %>% 
+  # gather and spread to get correct layout
+  gather(key = stat, value = value, mean, sd) %>% 
+  ungroup() %>% 
+  mutate(t.s = paste(Time, stat, sep = "_"),
+         Time = NULL,
+         stat = NULL) %>% 
+  spread(key = t.s, value = value)
+
+knitr::kable(sigsdf)
+
+```
 
 ## Tumor
 
