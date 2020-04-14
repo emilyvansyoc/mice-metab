@@ -1,0 +1,241 @@
+---
+title: "Lipids PCA by Group"
+author: "Emily Bean"
+date: "April 14, 2020"
+output:
+  rmarkdown::github_document
+---
+
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE)
+
+```
+
+This script aggregates the lipidomics dataset by group and performs PCA.
+
+```{r}
+## get data
+
+require(tidyverse)
+require(factoextra)
+require(FactoMineR)
+require(corrplot)
+
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
+
+# read custom PCA function
+source("https://raw.githubusercontent.com/EmilyB17/ganda-lab/master/MyPCAFunction.R")
+
+# read all lipids data
+lip <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allLipidsCleaned.txt", header = TRUE, stringsAsFactors = FALSE) %>% 
+    # add column of functional groups
+  mutate(group = as.factor(sapply(str_split(lipid, " "), `[`, 1)),
+         # set log.area to numberic
+         log.area = as.numeric(log.area)) %>% 
+  # for now: remove w/o
+  filter(!group == "w/o")
+
+# get positive and negative groups for PCAs and make horizontal
+# summarize by group
+posh <- lip %>% 
+  filter(ion == "POS") %>% 
+  group_by(group, treatmentID, tissue.type, Exercise, Weight, mouseID, SampleName) %>% 
+  summarize(meanarea = mean(log.area)) %>% 
+  pivot_wider(names_from = group, values_from = meanarea) %>% 
+  ungroup()
+
+negh <- lip %>% 
+  filter(ion == "NEG") %>% 
+  group_by(group, treatmentID, tissue.type, Exercise, Weight, mouseID, SampleName) %>% 
+  summarize(meanarea = mean(log.area)) %>% 
+  pivot_wider(names_from = group, values_from = meanarea) %>% 
+  ungroup()
+
+# plasma only to add time variable
+plasmaposh <- posh %>% 
+  filter(tissue.type == "plasma") %>% 
+  mutate(Time = sapply(strsplit(SampleName, "_"), `[`, 1)) %>% 
+  mutate(Time = factor(Time, ordered = TRUE, levels = c("D7", "D21", "D35")))
+plasmanegh <- negh %>% 
+  filter(tissue.type == "plasma") %>% 
+  mutate(Time = sapply(strsplit(SampleName, "_"), `[`, 1)) %>% 
+  mutate(Time = factor(Time, ordered = TRUE, levels = c("D7", "D21", "D35")))
+
+# tumor only
+tumorposh <- posh %>% filter(tissue.type == "tumor")
+tumornegh <- negh %>% filter(tissue.type == "tumor")
+
+```
+
+
+## Plasma vs tumor
+
+### POSITIVE
+
+```{r}
+
+# perform PCA
+data <- posh %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = posh$tissue.type,
+         groupname = "Tissue Type")
+```
+
+### NEGATIVE
+
+```{r}
+
+# perform PCA
+data <- negh %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = negh$tissue.type,
+         groupname = "Tissue Type")
+```
+
+## Plasma D7 vs D21 vd D35 
+
+### POSITIVE
+
+```{r}
+
+# perform PCA
+data <- plasmaposh %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight, Time))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping =  plasmaposh$Time,
+         groupname = "Plasma POS - Time")
+```
+
+### NEGATIVE
+
+```{r}
+
+# perform PCA
+data <- plasmanegh %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight, Time))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping =  plasmanegh$Time,
+         groupname = "Plasma POS - Time")
+```
+
+## Tumor 
+
+### 4 treatment groups (2x2 factorial)
+
+#### POSITIVE 
+
+```{r}
+
+# perform PCA
+data <- tumorposh %>%  select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumorposh$treatmentID,
+         groupname = "Tumor POS - 2x2 factorial")
+```
+
+#### NEGATIVE
+
+```{r}
+
+# perform PCA
+data <- tumornegh %>%  select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = tumornegh$treatmentID,
+         groupname = "Tumor NEG - 2x2 factorial")
+```
+
+## Plasma
+
+### 4 treatment groups
+
+#### POSITIVE 
+
+```{r}
+
+# perform PCA
+data <- plasmaposh %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight, Time))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmaposh$treatmentID,
+         groupname = "Plasma POS- 2x2 factorial")
+```
+
+#### NEGATIVE
+
+## Plasma
+
+### 4 treatment groups
+
+```{r}
+
+# perform PCA
+data <- plasmanegh %>% select(-c(SampleName, tissue.type, mouseID, treatmentID, Exercise, Weight, Time))
+
+# print plots
+myPCA(dat = data)
+```
+
+
+```{r}
+# get grouped plots
+plotPCAs(dat = data,
+         grouping = plasmanegh$treatmentID,
+         groupname = "Plasma NEG- 2x2 factorial")
+```
