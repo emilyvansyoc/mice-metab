@@ -1,0 +1,239 @@
+---
+title: "Metabolomics Two-Way ANOVA"
+author: "Emily Bean"
+date: "April 14, 2020"
+output:
+  rmarkdown::github_document
+---
+
+
+This script performs a two-way or three-way ANOVA on the aqueous metabolite fraction. Two-way ANOVA compares Exercise, Weight, and the interaction of both treatments. Three-way ANOVA compares Exercise, Weight, Time, and the interaction of both and all three.
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE)
+
+```
+
+
+```{r echo = FALSE, include = FALSE}
+
+## Read in all data and load packages
+require(tidyverse)
+require(ggplot2)
+require(emmeans)
+
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
+
+# read all aqueous data
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
+  mutate(tissue.type =
+           case_when(Label %in% "tumor" ~ "tumor",
+                     Label %in% "plasmaD7" ~ "plasma",
+                     Label %in% "plasmaD21" ~ "plasma",
+                     Label %in% "plasmaD35" ~ "plasma"))
+
+# make separate tumor and plasma dataframes for easier analysis 
+plasma <- aq %>% 
+  filter(!Label == "tumor") %>% 
+  mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "7",
+    Label %in% "plasmaD21" ~ "21",
+    Label %in% "plasmaD35" ~ "35"
+  ), ordered = TRUE, levels = c("7", "21", "35")))
+# tumor df 
+tumor <- filter(aq, Label == "tumor")
+
+
+```
+
+
+
+```{r}
+
+# define a function to perform two-way ANOVA
+myTwoWayAnova <- function(df, metabList) {
+  
+  
+  # make output dataframes
+  allpvals <- data.frame()
+  posthoc_sigs <- data.frame()
+  
+  # loop through each metabolite
+  for(i in 1:length(metabList)) {
+    
+    # perform ANOVA on the iterated metabolite
+    mod <- aov(area ~ Exercise*Weight, data = filter(df, metabolite == metabList[i]))
+    
+    # collect p values and F statistics
+    pvals <- data.frame(metabolite = metabList[i],
+                        fStatEx =  round(summary(mod)[[1]][["F value"]][1], 3),
+                        pvalEx = round(summary(mod)[[1]][["Pr(>F)"]][1], 3),
+                        fStatWt = round(summary(mod)[[1]][["F value"]][2], 3),
+                        pvalWt = round(summary(mod)[[1]][["Pr(>F)"]][2], 3),
+                        fStatInt = round(summary(mod)[[1]][["F value"]][3], 3),
+                        pvalInt = round(summary(mod)[[1]][["Pr(>F)"]][3], 3))
+    
+    # save to an outDF
+    allpvals <- rbind(allpvals, pvals)
+    
+    # perform Tukey post-hoc
+    tukey <- TukeyHSD(mod)
+    
+    # collect p vals
+    posthoc <- as.data.frame(rbind(tukey[1]$Exercise,
+                                   tukey[2]$Weight,
+                                   tukey[3]$`Exercise:Weight`)) %>% 
+      rownames_to_column(var = "contrast")
+    
+    # if there are any significant p vals, add to outDF
+    if(any(posthoc$`p adj` < 0.05)) {
+      
+      out <- posthoc %>% filter(`p adj` < 0.05)
+      out$metabolite <- metabList[i]
+      
+      posthoc_sigs <- rbind(posthoc_sigs, out)
+      
+    }
+    
+    
+  }
+
+  # return the output dataframes
+  return(list(allpvals, posthoc_sigs))
+}
+
+```
+
+
+```{r}
+
+# define function to perform three-way ANOVA with Time
+myThreeWayAnova <- function(df, metabList) {
+  
+  
+  # make output dataframes
+  allpvals <- data.frame()
+  posthoc_sigs <- data.frame()
+  
+  # loop through each metabolite
+  for(i in 1:length(metabList)) {
+    
+    # perform ANOVA on the iterated metabolite
+    mod <- aov(area ~ Exercise*Weight*Time, data = filter(df, metabolite == metabList[i]))
+    
+    # collect p values and F statistics
+    pvals <- data.frame(metabolite = metabList[i],
+                        fStatEx =  round(summary(mod)[[1]][["F value"]][1], 3),
+                        pvalEx = round(summary(mod)[[1]][["Pr(>F)"]][1], 3),
+                        fStatWt = round(summary(mod)[[1]][["F value"]][2], 3),
+                        pvalWt = round(summary(mod)[[1]][["Pr(>F)"]][2], 3),
+                        fStatTime = round(summary(mod)[[1]][["F value"]][3], 3),
+                        pvalTime = round(summary(mod)[[1]][["Pr(>F)"]][3], 3),
+                        fStatEx_Wt = round(summary(mod)[[1]][["F value"]][4], 3),
+                        pvalEx_Wt = round(summary(mod)[[1]][["Pr(>F)"]][4], 3),
+                        fStatEx_Time = round(summary(mod)[[1]][["F value"]][5], 3),
+                        pvalEx_Time = round(summary(mod)[[1]][["Pr(>F)"]][5], 3),
+                        fStatWt_Time = round(summary(mod)[[1]][["F value"]][6], 3),
+                        pvalWt_Time = round(summary(mod)[[1]][["Pr(>F)"]][6], 3),
+                        fStatEx_Wt_Time = round(summary(mod)[[1]][["F value"]][7], 3),
+                        pvalEx_Wt_Time = round(summary(mod)[[1]][["Pr(>F)"]][7], 3))
+    
+    # save to an outDF
+    allpvals <- rbind(allpvals, pvals)
+    
+    # perform Tukey post-hoc
+    tukey <- TukeyHSD(mod)
+    
+    # collect p vals
+    posthoc <- as.data.frame(rbind(tukey[1]$Exercise,
+                                   tukey[2]$Weight,
+                                   tukey[3]$Time,
+                                   tukey[4]$`Exercise:Weight`,
+                                   tukey[5]$`Exercise:Time`,
+                                   tukey[6]$`Weight:Time`,
+                                   tukey[7]$`Exercise:Weight:Time`)) %>% 
+      rownames_to_column(var = "contrast")
+    
+    # if there are any significant p vals, add to outDF
+    if(any(posthoc$`p adj` < 0.05)) {
+      
+      out <- posthoc %>% filter(`p adj` < 0.05)
+      out$metabolite <- metabList[i]
+      
+      posthoc_sigs <- rbind(posthoc_sigs, out)
+      
+    }
+    
+    
+  }
+
+  # return the output dataframes
+  return(list(allpvals, posthoc_sigs))
+}
+
+```
+
+
+## Tumor Tissue; Two-way ANOVA
+
+```{r}
+
+tumor <- myTwoWayAnova(df = tumor, metabList = unique(tumor$metabolite))
+
+```
+
+**Table of all F statistics & p values**
+
+```{r}
+
+# print table of all pvalues
+knitr::kable(as.data.frame(tumor[1]))
+
+```
+
+**Table of significant p values from Tukey's post hoc **
+
+```{r}
+
+# print table of all significant post-hoc findings
+sigs <- as.data.frame(tumor[2]) %>% 
+  select(metabolite, contrast, p.adj) %>% 
+  mutate(p.adj = round(p.adj, 3))
+
+knitr::kable(sigs)
+
+```
+
+## Plasma; Three-way ANOVA
+
+```{r}
+
+plasma <- myThreeWayAnova(df = plasma, metabList = unique(plasma$metabolite))
+
+```
+
+**Table of all F statistics & p values**
+
+```{r}
+
+# print table of all pvalues
+knitr::kable(as.data.frame(plasma[1]))
+
+```
+
+
+**Table of significant p values from Tukey's post hoc **
+
+```{r}
+
+# print table of all significant post-hoc findings
+sigs <- as.data.frame(plasma[2]) %>% 
+  select(metabolite, contrast, p.adj) %>% 
+  mutate(p.adj = round(p.adj, 3))
+
+knitr::kable(sigs)
+
+```
