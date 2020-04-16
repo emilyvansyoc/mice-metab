@@ -207,6 +207,35 @@ knitr::kable(sigs)
 
 ```
 
+**Line plot of significant interactions**
+
+```{r}
+
+# get metabolites with significant interaction term
+sigs <- data.frame(tumormod[1]) %>% 
+  filter(pvalInt < 0.05)
+
+sigdf <- tumor %>% 
+  semi_join(sigs, by = "metabolite") %>% 
+  group_by(metabolite, Exercise, Weight) %>% 
+  summarize(mean = mean(area),
+            sd = sd(area),
+            cilow = mean - 1.96*sd,
+            cihi = mean + 1.96*sd) %>% 
+  ungroup()
+
+# make a plot
+ggplot(data = sigdf, aes(x = Exercise, y = mean, group = Weight, color = Weight)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(data = sigdf, aes(ymin = mean + sd, ymax = mean - sd), width = .1) +
+  facet_wrap(~metabolite) +
+  ggtitle("Significant Interactions") +
+  labs(x = "Exercise", y = "Mean log area")
+
+```
+
+
 ## Plasma; Three-way ANOVA
 
 ```{r}
@@ -237,3 +266,56 @@ sigs <- as.data.frame(plasmamod[2]) %>%
 knitr::kable(sigs)
 
 ```
+
+**Interactions without Time**
+
+```{r}
+
+# get metabolites with significant interaction term
+sigs <- data.frame(plasmamod[1]) %>% 
+  filter(pvalEx_Wt < 0.05)
+
+sigdf <- plasma %>% 
+  semi_join(sigs, by = "metabolite") %>% 
+  group_by(metabolite, Exercise, Weight) %>% 
+  summarize(mean = mean(area),
+            sd = sd(area),
+            cilow = mean - 1.96*sd,
+            cihi = mean + 1.96*sd) %>% 
+  ungroup()
+
+# make a plot
+ggplot(data = sigdf, aes(x = Exercise, y = mean, group = Weight, color = Weight)) +
+  geom_point() +
+  geom_line() +
+  geom_errorbar(data = sigdf, aes(ymin = mean + sd, ymax = mean - sd), width = .1) +
+  facet_wrap(~metabolite) +
+  ggtitle("Significant Interactions w/o Time") +
+  labs(x = "Exercise", y = "Mean log area")
+
+```
+
+**Interactions with Ex, Weight, and Time**
+
+```{r}
+
+
+sigdf <- plasma %>% 
+  semi_join(sigs, by = "metabolite") %>% 
+  group_by(metabolite, treatmentID, Time, Exercise, Weight) %>% 
+  summarize(mean = mean(area),
+            sd = sd(area),
+            cilow = mean - 1.96*sd,
+            cihi = mean + 1.96*sd) %>% 
+  ungroup()
+
+# make a plot
+ggplot(data = sigdf, aes(x = Time, y = mean, group = treatmentID, color = treatmentID)) +
+  geom_point(aes(shape = Exercise)) +
+  geom_line(aes(linetype = Weight)) +
+  facet_wrap(~metabolite) +
+  ggtitle("Significant Interactions")+
+  labs(x = "Exercise", y = "Mean log area")
+
+```
+
