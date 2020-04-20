@@ -8,7 +8,7 @@ This script performs a two-way or three-way ANOVA on the aqueous metabolite frac
 Tumor Tissue; Two-way ANOVA
 ---------------------------
 
-**Table of all F statistics & p values**
+**Table of all F statistics & unadjusted p values**
 
 | metabolite                         |  fStatEx|  pvalEx|  fStatWt|  pvalWt|  fStatInt|  pvalInt|
 |:-----------------------------------|--------:|-------:|--------:|-------:|---------:|--------:|
@@ -149,33 +149,33 @@ Tumor Tissue; Two-way ANOVA
 | Glutathione.disulfide              |    0.000|   0.986|    3.521|   0.078|     0.292|    0.596|
 | FAD                                |    0.661|   0.427|    1.456|   0.244|     2.987|    0.102|
 
-**Table of significant p values from Tukey's post hoc **
+**Table of significant and adjusted p values from Tukey's post hoc **
 
-| metabolite                     | contrast      |  p.adj|
-|:-------------------------------|:--------------|------:|
-| Alanine.Sacrosine              | ER-AL         |  0.034|
-| Acetyl.glycine                 | ER-AL         |  0.017|
-| Pipecolic.Acid                 | ER-AL         |  0.011|
-| Hydroxyproline.Aminolevulinate | ER-AL         |  0.040|
-| Hydroxyproline.Aminolevulinate | EX:ER-EX:AL   |  0.011|
-| Homocysteine.Methylcysteine    | ER-AL         |  0.029|
-| Quinolinate                    | SED-EX        |  0.014|
-| Quinolinate                    | ER-AL         |  0.006|
-| Quinolinate                    | EX:ER-SED:AL  |  0.004|
-| Quinolinate                    | SED:ER-SED:AL |  0.045|
-| Acetyl.aspartate               | ER-AL         |  0.010|
-| Acetyl.aspartate               | SED:ER-EX:AL  |  0.013|
-| Glucose                        | ER-AL         |  0.001|
-| Glucose                        | EX:ER-EX:AL   |  0.016|
-| Glucose                        | EX:ER-SED:AL  |  0.015|
-| X6.Phospho.D.gluconate         | ER-AL         |  0.024|
-| Pantetheine                    | ER-AL         |  0.016|
-| X4.Phosphopantothenate         | ER-AL         |  0.033|
-| ADP                            | ER-AL         |  0.029|
+| metabolite                     | comparison  | contrast      |  p.adj|
+|:-------------------------------|:------------|:--------------|------:|
+| Alanine.Sacrosine              | Weight      | ER-AL         |  0.034|
+| Acetyl.glycine                 | Weight      | ER-AL         |  0.017|
+| Pipecolic.Acid                 | Weight      | ER-AL         |  0.011|
+| Hydroxyproline.Aminolevulinate | Weight      | ER-AL         |  0.040|
+| Hydroxyproline.Aminolevulinate | Interaction | EX:ER-EX:AL   |  0.011|
+| Homocysteine.Methylcysteine    | Weight      | ER-AL         |  0.029|
+| Quinolinate                    | Exercise    | SED-EX        |  0.014|
+| Quinolinate                    | Weight      | ER-AL         |  0.006|
+| Quinolinate                    | Interaction | EX:ER-SED:AL  |  0.004|
+| Quinolinate                    | Interaction | SED:ER-SED:AL |  0.045|
+| Acetyl.aspartate               | Weight      | ER-AL         |  0.010|
+| Acetyl.aspartate               | Interaction | SED:ER-EX:AL  |  0.013|
+| Glucose                        | Weight      | ER-AL         |  0.001|
+| Glucose                        | Interaction | EX:ER-EX:AL   |  0.016|
+| Glucose                        | Interaction | EX:ER-SED:AL  |  0.015|
+| X6.Phospho.D.gluconate         | Weight      | ER-AL         |  0.024|
+| Pantetheine                    | Weight      | ER-AL         |  0.016|
+| X4.Phosphopantothenate         | Weight      | ER-AL         |  0.033|
+| ADP                            | Weight      | ER-AL         |  0.029|
 
-**Line plot of significant interactions**
+**Visualizations**
 
-![](metabolomicsANOVAs_files/figure-markdown_github/unnamed-chunk-7-1.png)
+![](metabolomicsANOVAs_files/figure-markdown_github/unnamed-chunk-7-1.png)![](metabolomicsANOVAs_files/figure-markdown_github/unnamed-chunk-7-2.png)![](metabolomicsANOVAs_files/figure-markdown_github/unnamed-chunk-7-3.png)
 
 Plasma; Three-way ANOVA
 -----------------------
@@ -323,149 +323,149 @@ Plasma; Three-way ANOVA
 
 **Table of significant p values from Tukey's post hoc **
 
-| metabolite                     | contrast           |  p.adj|
-|:-------------------------------|:-------------------|------:|
-| Pyruvate                       | 35-21              |  0.012|
-| Pyruvate                       | ER:35-ER:7         |  0.014|
-| Pyruvate                       | ER:35-AL:21        |  0.039|
-| Pyruvate                       | ER:35-ER:21        |  0.011|
-| Alanine.Sacrosine              | 35-7               |  0.000|
-| Alanine.Sacrosine              | 35-21              |  0.010|
-| Alanine.Sacrosine              | EX:35-EX:7         |  0.001|
-| Alanine.Sacrosine              | SED:35-EX:7        |  0.015|
-| Alanine.Sacrosine              | EX:35-EX:21        |  0.026|
-| Alanine.Sacrosine              | AL:35-AL:7         |  0.023|
-| Alanine.Sacrosine              | AL:35-ER:7         |  0.008|
-| Alanine.Sacrosine              | ER:35-ER:7         |  0.036|
-| Alanine.Sacrosine              | AL:35-ER:21        |  0.022|
-| Alanine.Sacrosine              | EX:ER:35-EX:ER:21  |  0.027|
-| X3.Hydroxybutyric.acid         | 35-7               |  0.042|
-| Serine                         | 35-7               |  0.008|
-| Serine                         | EX:35-EX:7         |  0.017|
-| Serine                         | SED:35-EX:7        |  0.028|
-| Uracil                         | 35-21              |  0.042|
-| Fumarate                       | ER-AL              |  0.020|
-| Fumarate                       | EX:ER-EX:AL        |  0.022|
-| Fumarate                       | AL:35-ER:7         |  0.045|
-| Fumarate                       | AL:35-ER:21        |  0.036|
-| Fumarate                       | EX:AL:35-EX:ER:7   |  0.035|
-| Fumarate                       | EX:ER:35-EX:AL:35  |  0.021|
-| Acetyl.glycine                 | EX:35-EX:21        |  0.031|
-| Acetyl.glycine                 | ER:35-ER:7         |  0.049|
-| Acetyl.glycine                 | ER:35-AL:35        |  0.022|
-| Acetyl.glycine                 | EX:ER:35-EX:ER:7   |  0.044|
-| Acetyl.glycine                 | EX:ER:35-EX:ER:21  |  0.019|
-| Acetyl.glycine                 | EX:ER:35-SED:AL:35 |  0.026|
-| Threonine.Homoserine           | 35-7               |  0.035|
-| Nicotinate                     | 21-7               |  0.019|
-| Nicotinate                     | 35-21              |  0.048|
-| Nicotinate                     | AL:21-ER:7         |  0.038|
-| Taurine                        | 35-7               |  0.049|
-| Taurine                        | 35-21              |  0.010|
-| Taurine                        | AL:35-ER:21        |  0.016|
-| Taurine                        | ER:35-ER:21        |  0.027|
-| Taurine                        | SED:AL:35-EX:ER:21 |  0.047|
-| Pipecolic.Acid                 | ER:35-AL:7         |  0.016|
-| Citraconic.acid                | 35-7               |  0.047|
-| Citraconic.acid                | 35-21              |  0.047|
-| Hydroxyproline.Aminolevulinate | ER-AL              |  0.004|
-| Hydroxyproline.Aminolevulinate | EX:ER-SED:AL       |  0.005|
-| Hydroxyproline.Aminolevulinate | AL:21-ER:7         |  0.020|
-| Hydroxyproline.Aminolevulinate | AL:35-ER:7         |  0.030|
-| N.Acetyl.L.alanine             | 35-7               |  0.007|
-| N.Acetyl.L.alanine             | 35-21              |  0.034|
-| N.Acetyl.L.alanine             | SED:35-EX:7        |  0.014|
-| N.Acetyl.L.alanine             | SED:35-SED:7       |  0.009|
-| N.Acetyl.L.alanine             | SED:35-SED:21      |  0.025|
-| N.Acetyl.L.alanine             | SED:ER:35-EX:AL:7  |  0.042|
-| N.Acetyl.L.alanine             | SED:ER:35-SED:ER:7 |  0.007|
-| Leucine.Isoleucine             | 35-7               |  0.042|
-| Leucine.Isoleucine             | SED:35-EX:7        |  0.027|
-| Leucine.Isoleucine             | EX:AL:21-EX:AL:7   |  0.029|
-| Asparagine                     | SED-EX             |  0.050|
-| Asparagine                     | 35-7               |  0.003|
-| Asparagine                     | SED:21-EX:7        |  0.042|
-| Asparagine                     | EX:35-EX:7         |  0.007|
-| Asparagine                     | SED:35-EX:7        |  0.012|
-| Homocysteine.Methylcysteine    | 35-7               |  0.044|
-| Anthranilate                   | 35-21              |  0.048|
-| Lysine                         | ER-AL              |  0.014|
-| Lysine                         | EX:ER-EX:AL        |  0.001|
-| Lysine                         | ER:7-AL:7          |  0.005|
-| Lysine                         | AL:21-ER:7         |  0.038|
-| Lysine                         | AL:35-ER:7         |  0.029|
-| Lysine                         | ER:35-ER:7         |  0.043|
-| Lysine                         | EX:ER:7-EX:AL:7    |  0.002|
-| Lysine                         | EX:AL:21-EX:ER:7   |  0.034|
-| Lysine                         | SED:ER:21-EX:ER:7  |  0.014|
-| X2.Oxo.4.methylthiobutanoate   | ER-AL              |  0.004|
-| Methionine                     | 35-7               |  0.012|
-| Methionine                     | 35-21              |  0.023|
-| Methionine                     | SED:35-EX:7        |  0.036|
-| Methionine                     | AL:35-ER:21        |  0.035|
-| Xanthine                       | 21-7               |  0.035|
-| X2.Aminooctanoic.acid          | 35-7               |  0.032|
-| X2.Aminooctanoic.acid          | 35-21              |  0.042|
-| Phenyllactic.acid              | SED-EX             |  0.007|
-| Phenyllactic.acid              | SED:ER-EX:ER       |  0.008|
-| Phenyllactic.acid              | SED:35-EX:35       |  0.026|
-| Phenyllactic.acid              | SED:ER:35-EX:ER:35 |  0.015|
-| Quinolinate                    | ER-AL              |  0.035|
-| Quinolinate                    | EX:ER:35-EX:ER:21  |  0.035|
-| sn.Glycerol.3.phosphate        | 35-21              |  0.013|
-| sn.Glycerol.3.phosphate        | EX:21-SED:7        |  0.020|
-| sn.Glycerol.3.phosphate        | EX:35-EX:21        |  0.028|
-| Acetyl.aspartate               | ER-AL              |  0.017|
-| Acetyl.aspartate               | ER:35-AL:21        |  0.040|
-| Acetyl.aspartate               | ER:35-AL:35        |  0.037|
-| Glucose                        | SED-EX             |  0.043|
-| Glucose                        | SED:21-EX:7        |  0.018|
-| Glucose                        | EX:35-EX:7         |  0.030|
-| Acetyllysine                   | ER-AL              |  0.010|
-| Xanthurenic.acid               | ER-AL              |  0.019|
-| Glucarate                      | ER-AL              |  0.011|
-| Glucarate                      | EX:ER-EX:AL        |  0.009|
-| Pantothenate                   | ER-AL              |  0.027|
-| Pantothenate                   | 35-7               |  0.002|
-| Pantothenate                   | 35-21              |  0.008|
-| Pantothenate                   | SED:35-EX:7        |  0.038|
-| Pantothenate                   | ER:35-AL:7         |  0.007|
-| Pantothenate                   | ER:35-AL:21        |  0.011|
-| Pantothenate                   | SED:ER:35-EX:AL:7  |  0.024|
-| Deoxyuridine                   | 35-7               |  0.003|
-| Deoxyuridine                   | AL:35-ER:7         |  0.007|
-| Deoxyuridine                   | SED:AL:35-EX:ER:7  |  0.049|
-| Pro.Asp..PD.                   | 35-7               |  0.011|
-| Pro.Asp..PD.                   | EX:35-SED:7        |  0.024|
-| Uridine                        | 35-7               |  0.033|
-| Xanthosine                     | 21-7               |  0.000|
-| Xanthosine                     | EX:21-EX:7         |  0.001|
-| Xanthosine                     | EX:21-SED:7        |  0.001|
-| Xanthosine                     | EX:35-EX:21        |  0.009|
-| Xanthosine                     | ER:21-AL:7         |  0.011|
-| Xanthosine                     | ER:21-ER:7         |  0.004|
-| Xanthosine                     | ER:35-ER:21        |  0.024|
-| Xanthosine                     | EX:ER:21-EX:AL:7   |  0.008|
-| Xanthosine                     | EX:ER:21-SED:ER:7  |  0.003|
-| Xanthosine                     | SED:AL:35-SED:ER:7 |  0.026|
-| Xanthosine                     | EX:ER:35-EX:ER:21  |  0.039|
-| S.Methyl.5..thioadenosine      | ER-AL              |  0.041|
-| S.Methyl.5..thioadenosine      | SED:ER-EX:AL       |  0.048|
-| X4.Phosphopantothenate         | EX:35-SED:21       |  0.017|
-| Glutathione                    | ER-AL              |  0.007|
-| CMP                            | ER-AL              |  0.002|
-| CMP                            | EX:ER-SED:AL       |  0.016|
-| UMP                            | ER-AL              |  0.020|
-| UMP                            | ER:35-AL:21        |  0.041|
-| UMP                            | EX:ER:35-SED:AL:21 |  0.014|
-| Fructose.1.6.bisphosphate      | SED-EX             |  0.019|
-| Trehalose.Sucrose              | ER-AL              |  0.050|
-| AMP                            | 35-7               |  0.046|
-| AMP                            | ER:35-ER:7         |  0.029|
-| ADP                            | SED-EX             |  0.023|
-| FMN                            | 21-7               |  0.015|
-| FAD                            | ER-AL              |  0.027|
-| FAD                            | AL:35-ER:7         |  0.039|
+| metabolite                     | comparison | contrast           |  p.adj|
+|:-------------------------------|:-----------|:-------------------|------:|
+| Pyruvate                       | Time       | 35-21              |  0.012|
+| Pyruvate                       | Wt-Time    | ER:35-ER:7         |  0.014|
+| Pyruvate                       | Wt-Time    | ER:35-AL:21        |  0.039|
+| Pyruvate                       | Wt-Time    | ER:35-ER:21        |  0.011|
+| Alanine.Sacrosine              | Time       | 35-7               |  0.000|
+| Alanine.Sacrosine              | Time       | 35-21              |  0.010|
+| Alanine.Sacrosine              | Ex-Time    | EX:35-EX:7         |  0.001|
+| Alanine.Sacrosine              | Ex-Time    | SED:35-EX:7        |  0.015|
+| Alanine.Sacrosine              | Ex-Time    | EX:35-EX:21        |  0.026|
+| Alanine.Sacrosine              | Wt-Time    | AL:35-AL:7         |  0.023|
+| Alanine.Sacrosine              | Wt-Time    | AL:35-ER:7         |  0.008|
+| Alanine.Sacrosine              | Wt-Time    | ER:35-ER:7         |  0.036|
+| Alanine.Sacrosine              | Wt-Time    | AL:35-ER:21        |  0.022|
+| Alanine.Sacrosine              | Ex-Wt-Time | EX:ER:35-EX:ER:21  |  0.027|
+| X3.Hydroxybutyric.acid         | Time       | 35-7               |  0.042|
+| Serine                         | Time       | 35-7               |  0.008|
+| Serine                         | Ex-Time    | EX:35-EX:7         |  0.017|
+| Serine                         | Ex-Time    | SED:35-EX:7        |  0.028|
+| Uracil                         | Time       | 35-21              |  0.042|
+| Fumarate                       | Weight     | ER-AL              |  0.020|
+| Fumarate                       | Ex-Wt      | EX:ER-EX:AL        |  0.022|
+| Fumarate                       | Wt-Time    | AL:35-ER:7         |  0.045|
+| Fumarate                       | Wt-Time    | AL:35-ER:21        |  0.036|
+| Fumarate                       | Ex-Wt-Time | EX:AL:35-EX:ER:7   |  0.035|
+| Fumarate                       | Ex-Wt-Time | EX:ER:35-EX:AL:35  |  0.021|
+| Acetyl.glycine                 | Ex-Time    | EX:35-EX:21        |  0.031|
+| Acetyl.glycine                 | Wt-Time    | ER:35-ER:7         |  0.049|
+| Acetyl.glycine                 | Wt-Time    | ER:35-AL:35        |  0.022|
+| Acetyl.glycine                 | Ex-Wt-Time | EX:ER:35-EX:ER:7   |  0.044|
+| Acetyl.glycine                 | Ex-Wt-Time | EX:ER:35-EX:ER:21  |  0.019|
+| Acetyl.glycine                 | Ex-Wt-Time | EX:ER:35-SED:AL:35 |  0.026|
+| Threonine.Homoserine           | Time       | 35-7               |  0.035|
+| Nicotinate                     | Time       | 21-7               |  0.019|
+| Nicotinate                     | Time       | 35-21              |  0.048|
+| Nicotinate                     | Wt-Time    | AL:21-ER:7         |  0.038|
+| Taurine                        | Time       | 35-7               |  0.049|
+| Taurine                        | Time       | 35-21              |  0.010|
+| Taurine                        | Wt-Time    | AL:35-ER:21        |  0.016|
+| Taurine                        | Wt-Time    | ER:35-ER:21        |  0.027|
+| Taurine                        | Ex-Wt-Time | SED:AL:35-EX:ER:21 |  0.047|
+| Pipecolic.Acid                 | Wt-Time    | ER:35-AL:7         |  0.016|
+| Citraconic.acid                | Time       | 35-7               |  0.047|
+| Citraconic.acid                | Time       | 35-21              |  0.047|
+| Hydroxyproline.Aminolevulinate | Weight     | ER-AL              |  0.004|
+| Hydroxyproline.Aminolevulinate | Ex-Wt      | EX:ER-SED:AL       |  0.005|
+| Hydroxyproline.Aminolevulinate | Wt-Time    | AL:21-ER:7         |  0.020|
+| Hydroxyproline.Aminolevulinate | Wt-Time    | AL:35-ER:7         |  0.030|
+| N.Acetyl.L.alanine             | Time       | 35-7               |  0.007|
+| N.Acetyl.L.alanine             | Time       | 35-21              |  0.034|
+| N.Acetyl.L.alanine             | Ex-Time    | SED:35-EX:7        |  0.014|
+| N.Acetyl.L.alanine             | Ex-Time    | SED:35-SED:7       |  0.009|
+| N.Acetyl.L.alanine             | Ex-Time    | SED:35-SED:21      |  0.025|
+| N.Acetyl.L.alanine             | Ex-Wt-Time | SED:ER:35-EX:AL:7  |  0.042|
+| N.Acetyl.L.alanine             | Ex-Wt-Time | SED:ER:35-SED:ER:7 |  0.007|
+| Leucine.Isoleucine             | Time       | 35-7               |  0.042|
+| Leucine.Isoleucine             | Ex-Time    | SED:35-EX:7        |  0.027|
+| Leucine.Isoleucine             | Ex-Wt-Time | EX:AL:21-EX:AL:7   |  0.029|
+| Asparagine                     | Exercise   | SED-EX             |  0.050|
+| Asparagine                     | Time       | 35-7               |  0.003|
+| Asparagine                     | Ex-Time    | SED:21-EX:7        |  0.042|
+| Asparagine                     | Ex-Time    | EX:35-EX:7         |  0.007|
+| Asparagine                     | Ex-Time    | SED:35-EX:7        |  0.012|
+| Homocysteine.Methylcysteine    | Time       | 35-7               |  0.044|
+| Anthranilate                   | Time       | 35-21              |  0.048|
+| Lysine                         | Weight     | ER-AL              |  0.014|
+| Lysine                         | Ex-Wt      | EX:ER-EX:AL        |  0.001|
+| Lysine                         | Wt-Time    | ER:7-AL:7          |  0.005|
+| Lysine                         | Wt-Time    | AL:21-ER:7         |  0.038|
+| Lysine                         | Wt-Time    | AL:35-ER:7         |  0.029|
+| Lysine                         | Wt-Time    | ER:35-ER:7         |  0.043|
+| Lysine                         | Ex-Wt-Time | EX:ER:7-EX:AL:7    |  0.002|
+| Lysine                         | Ex-Wt-Time | EX:AL:21-EX:ER:7   |  0.034|
+| Lysine                         | Ex-Wt-Time | SED:ER:21-EX:ER:7  |  0.014|
+| X2.Oxo.4.methylthiobutanoate   | Weight     | ER-AL              |  0.004|
+| Methionine                     | Time       | 35-7               |  0.012|
+| Methionine                     | Time       | 35-21              |  0.023|
+| Methionine                     | Ex-Time    | SED:35-EX:7        |  0.036|
+| Methionine                     | Wt-Time    | AL:35-ER:21        |  0.035|
+| Xanthine                       | Time       | 21-7               |  0.035|
+| X2.Aminooctanoic.acid          | Time       | 35-7               |  0.032|
+| X2.Aminooctanoic.acid          | Time       | 35-21              |  0.042|
+| Phenyllactic.acid              | Exercise   | SED-EX             |  0.007|
+| Phenyllactic.acid              | Ex-Wt      | SED:ER-EX:ER       |  0.008|
+| Phenyllactic.acid              | Ex-Time    | SED:35-EX:35       |  0.026|
+| Phenyllactic.acid              | Ex-Wt-Time | SED:ER:35-EX:ER:35 |  0.015|
+| Quinolinate                    | Weight     | ER-AL              |  0.035|
+| Quinolinate                    | Ex-Wt-Time | EX:ER:35-EX:ER:21  |  0.035|
+| sn.Glycerol.3.phosphate        | Time       | 35-21              |  0.013|
+| sn.Glycerol.3.phosphate        | Ex-Time    | EX:21-SED:7        |  0.020|
+| sn.Glycerol.3.phosphate        | Ex-Time    | EX:35-EX:21        |  0.028|
+| Acetyl.aspartate               | Weight     | ER-AL              |  0.017|
+| Acetyl.aspartate               | Wt-Time    | ER:35-AL:21        |  0.040|
+| Acetyl.aspartate               | Wt-Time    | ER:35-AL:35        |  0.037|
+| Glucose                        | Exercise   | SED-EX             |  0.043|
+| Glucose                        | Ex-Time    | SED:21-EX:7        |  0.018|
+| Glucose                        | Ex-Time    | EX:35-EX:7         |  0.030|
+| Acetyllysine                   | Weight     | ER-AL              |  0.010|
+| Xanthurenic.acid               | Weight     | ER-AL              |  0.019|
+| Glucarate                      | Weight     | ER-AL              |  0.011|
+| Glucarate                      | Ex-Wt      | EX:ER-EX:AL        |  0.009|
+| Pantothenate                   | Weight     | ER-AL              |  0.027|
+| Pantothenate                   | Time       | 35-7               |  0.002|
+| Pantothenate                   | Time       | 35-21              |  0.008|
+| Pantothenate                   | Ex-Time    | SED:35-EX:7        |  0.038|
+| Pantothenate                   | Wt-Time    | ER:35-AL:7         |  0.007|
+| Pantothenate                   | Wt-Time    | ER:35-AL:21        |  0.011|
+| Pantothenate                   | Ex-Wt-Time | SED:ER:35-EX:AL:7  |  0.024|
+| Deoxyuridine                   | Time       | 35-7               |  0.003|
+| Deoxyuridine                   | Wt-Time    | AL:35-ER:7         |  0.007|
+| Deoxyuridine                   | Ex-Wt-Time | SED:AL:35-EX:ER:7  |  0.049|
+| Pro.Asp..PD.                   | Time       | 35-7               |  0.011|
+| Pro.Asp..PD.                   | Ex-Time    | EX:35-SED:7        |  0.024|
+| Uridine                        | Time       | 35-7               |  0.033|
+| Xanthosine                     | Time       | 21-7               |  0.000|
+| Xanthosine                     | Ex-Time    | EX:21-EX:7         |  0.001|
+| Xanthosine                     | Ex-Time    | EX:21-SED:7        |  0.001|
+| Xanthosine                     | Ex-Time    | EX:35-EX:21        |  0.009|
+| Xanthosine                     | Wt-Time    | ER:21-AL:7         |  0.011|
+| Xanthosine                     | Wt-Time    | ER:21-ER:7         |  0.004|
+| Xanthosine                     | Wt-Time    | ER:35-ER:21        |  0.024|
+| Xanthosine                     | Ex-Wt-Time | EX:ER:21-EX:AL:7   |  0.008|
+| Xanthosine                     | Ex-Wt-Time | EX:ER:21-SED:ER:7  |  0.003|
+| Xanthosine                     | Ex-Wt-Time | SED:AL:35-SED:ER:7 |  0.026|
+| Xanthosine                     | Ex-Wt-Time | EX:ER:35-EX:ER:21  |  0.039|
+| S.Methyl.5..thioadenosine      | Weight     | ER-AL              |  0.041|
+| S.Methyl.5..thioadenosine      | Ex-Wt      | SED:ER-EX:AL       |  0.048|
+| X4.Phosphopantothenate         | Ex-Time    | EX:35-SED:21       |  0.017|
+| Glutathione                    | Weight     | ER-AL              |  0.007|
+| CMP                            | Weight     | ER-AL              |  0.002|
+| CMP                            | Ex-Wt      | EX:ER-SED:AL       |  0.016|
+| UMP                            | Weight     | ER-AL              |  0.020|
+| UMP                            | Wt-Time    | ER:35-AL:21        |  0.041|
+| UMP                            | Ex-Wt-Time | EX:ER:35-SED:AL:21 |  0.014|
+| Fructose.1.6.bisphosphate      | Exercise   | SED-EX             |  0.019|
+| Trehalose.Sucrose              | Weight     | ER-AL              |  0.050|
+| AMP                            | Time       | 35-7               |  0.046|
+| AMP                            | Wt-Time    | ER:35-ER:7         |  0.029|
+| ADP                            | Exercise   | SED-EX             |  0.023|
+| FMN                            | Time       | 21-7               |  0.015|
+| FAD                            | Weight     | ER-AL              |  0.027|
+| FAD                            | Wt-Time    | AL:35-ER:7         |  0.039|
 
 **Interactions without Time**
 

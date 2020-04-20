@@ -50,6 +50,24 @@ tumor <- filter(aq, Label == "tumor")
 ```
 
 
+```{#r}
+
+# write table of summary statistics
+
+# summary stats on all data (mean, sd)
+
+sum <- aq %>% 
+  group_by(tissue.type, metabolite, Exercise, Weight) %>% 
+  summarize(mean = mean(area),
+            sd = sd(area)) %>% 
+  ungroup() %>% 
+  mutate(metabolite = str_remove(gsub("\\.", "-", metabolite), "X"))
+
+write.table(sum, file = "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-summary-stats.txt",
+            sep = "\t", row.names = FALSE)
+
+```
+
 
 ```{r}
 
@@ -83,10 +101,16 @@ myTwoWayAnova <- function(df, metabList) {
     tukey <- TukeyHSD(mod)
     
     # collect p vals
-    posthoc <- as.data.frame(rbind(tukey[1]$Exercise,
-                                   tukey[2]$Weight,
-                                   tukey[3]$`Exercise:Weight`)) %>% 
-      rownames_to_column(var = "contrast")
+    posthoc <- as.data.frame(rbind(as.data.frame(tukey[1]$Exercise) %>% 
+                                 mutate(comparison = "Exercise",
+                                          contrast = rownames(tukey[1]$Exercise)),
+                               as.data.frame(tukey[2]$Weight) %>% 
+                                 mutate(comparison = "Weight",
+                                        contrast = rownames(tukey[2]$Weight)),
+                               as.data.frame(tukey[3]$`Exercise:Weight`) %>% 
+                                 mutate(comparison = "Interaction",
+                                        contrast = rownames(tukey[3]$`Exercise:Weight`))))
+
     
     # if there are any significant p vals, add to outDF
     if(any(posthoc$`p adj` < 0.05)) {
@@ -148,14 +172,27 @@ myThreeWayAnova <- function(df, metabList) {
     tukey <- TukeyHSD(mod)
     
     # collect p vals
-    posthoc <- as.data.frame(rbind(tukey[1]$Exercise,
-                                   tukey[2]$Weight,
-                                   tukey[3]$Time,
-                                   tukey[4]$`Exercise:Weight`,
-                                   tukey[5]$`Exercise:Time`,
-                                   tukey[6]$`Weight:Time`,
-                                   tukey[7]$`Exercise:Weight:Time`)) %>% 
-      rownames_to_column(var = "contrast")
+    posthoc <- as.data.frame(rbind(as.data.frame(tukey[1]$Exercise) %>% 
+                                 mutate(comparison = "Exercise",
+                                          contrast = rownames(tukey[1]$Exercise)),
+                                   as.data.frame(tukey[2]$Weight) %>% 
+                                 mutate(comparison = "Weight",
+                                          contrast = rownames(tukey[2]$Weight)),
+                                   as.data.frame(tukey[3]$Time) %>% 
+                                 mutate(comparison = "Time",
+                                          contrast = rownames(tukey[3]$Time)),
+                                   as.data.frame(tukey[4]$`Exercise:Weight`) %>% 
+                                 mutate(comparison = "Ex-Wt",
+                                          contrast = rownames(tukey[4]$`Exercise:Weight`)),
+                                   as.data.frame(tukey[5]$`Exercise:Time`) %>% 
+                                 mutate(comparison = "Ex-Time",
+                                          contrast = rownames(tukey[5]$`Exercise:Time`)),
+                                   as.data.frame(tukey[6]$`Weight:Time`) %>% 
+                                 mutate(comparison = "Wt-Time",
+                                          contrast = rownames(tukey[6]$`Weight:Time`)),
+                                   as.data.frame(tukey[7]$`Exercise:Weight:Time`) %>% 
+                                 mutate(comparison = "Ex-Wt-Time",
+                                          contrast = rownames(tukey[7]$`Exercise:Weight:Time`))))
     
     # if there are any significant p vals, add to outDF
     if(any(posthoc$`p adj` < 0.05)) {
@@ -185,38 +222,61 @@ tumormod <- myTwoWayAnova(df = tumor, metabList = unique(tumor$metabolite))
 
 ```
 
-**Table of all F statistics & p values**
+**Table of all F statistics & unadjusted p values**
 
-```{r}
+```{#r}
 
 # print table of all pvalues
-knitr::kable(as.data.frame(tumormod[1]))
+#knitr::kable(as.data.frame(tumormod[1]))
+
+# wrangle data for nicer table format
+# make table of results
+
+tab <- as.data.frame(tumormod[1]) %>% 
+  # fix up 'metabolite' name
+  mutate(metabolite = str_remove(gsub("\\.", "-", metabolite), "X"))
+
+write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-twowayANOVA-fstat_pval.txt", sep = "\t",
+            row.names = FALSE)
+
 
 ```
 
-**Table of significant p values from Tukey's post hoc **
+**Table of significant and adjusted p values from Tukey's post hoc **
 
 ```{r}
 
 # print table of all significant post-hoc findings
 sigs <- as.data.frame(tumormod[2]) %>% 
-  select(metabolite, contrast, p.adj) %>% 
+  select(metabolite, comparison, contrast, p.adj) %>% 
   mutate(p.adj = round(p.adj, 3))
 
-knitr::kable(sigs)
+#knitr::kable(sigs)
+
+
+# wrangle data for nicer table format
+# make table of results
+
+#tab <- as.data.frame(tumormod[2]) %>% 
+  # fix up 'metabolite' name
+  mutate(metabolite = str_remove(gsub("\\.", "-", metabolite), "X")) %>% 
+  select(metabolite, comparison, contrast, diff, lwr, upr, p.adj)
+
+#write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-twowayANOVA-oosthoc.txt", sep = "\t",
+            row.names = FALSE)
 
 ```
 
-**Line plot of significant interactions**
+**Visualizations**
 
 ```{r}
 
 # get metabolites with significant interaction term
-sigs <- data.frame(tumormod[1]) %>% 
-  filter(pvalInt < 0.05)
+sigsInt <- data.frame(tumormod[2]) %>% 
+  filter(comparison == "Interaction")
 
 sigdf <- tumor %>% 
-  semi_join(sigs, by = "metabolite") %>% 
+  semi_join(sigsInt, by = "metabolite") %>% 
   group_by(metabolite, Exercise, Weight) %>% 
   summarize(mean = mean(area),
             sd = sd(area),
@@ -233,6 +293,37 @@ ggplot(data = sigdf, aes(x = Exercise, y = mean, group = Weight, color = Weight)
   ggtitle("Significant Interactions") +
   labs(x = "Exercise", y = "Mean log area")
 
+## get metabolites with just Exericse significance
+sigEx <- data.frame(tumormod[2]) %>% 
+  filter(comparison == "Exercise") 
+
+sigdfEx <- tumor %>% 
+  semi_join(sigEx, by = "metabolite")
+
+# plot (just Quinolinate)
+ggplot(data = sigdfEx, aes(x = Exercise, y = area)) +
+  geom_boxplot() +
+  labs(x = "Exercise", y = "Log area", title = "Quinolinate")
+
+## get metabolites with just Weight significance
+sigWt <- data.frame(tumormod[2]) %>% 
+  filter(comparison == "Weight") 
+
+sigdfWt <- tumor %>% 
+  semi_join(sigWt, by = "metabolite") %>% 
+  group_by(metabolite, Weight) %>% 
+  summarize(mean = mean(area),
+            sd = sd(area),
+            cilow = mean - 1.96*sd,
+            cihi = mean + 1.96*sd) %>% 
+  ungroup()
+
+# plot
+ggplot(data = sigdfWt, aes(x = Weight, y = mean, group = metabolite, color = metabolite)) +
+  geom_point() +
+  geom_line() +
+  labs(x = "Weight", y = "Mean log area", title = "Significant between Weight treatment")
+
 ```
 
 
@@ -246,10 +337,20 @@ plasmamod <- myThreeWayAnova(df = plasma, metabList = unique(plasma$metabolite))
 
 **Table of all F statistics & p values**
 
-```{r}
+```{#r}
 
 # print table of all pvalues
-knitr::kable(as.data.frame(plasmamod[1]))
+#knitr::kable(as.data.frame(plasmamod[1]))
+
+# wrangle data for nicer table format
+# make table of results
+
+tab <- as.data.frame(plasmamod[1]) %>% 
+  # fix up 'metabolite' name
+  mutate(metabolite = str_remove(gsub("\\.", "-", metabolite), "X"))
+
+write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-threewayANOVA-fstat_pval.txt", sep = "\t",
+            row.names = FALSE)
 
 ```
 
@@ -260,10 +361,21 @@ knitr::kable(as.data.frame(plasmamod[1]))
 
 # print table of all significant post-hoc findings
 sigs <- as.data.frame(plasmamod[2]) %>% 
-  select(metabolite, contrast, p.adj) %>% 
+  select(metabolite, comparison, contrast, p.adj) %>% 
   mutate(p.adj = round(p.adj, 3))
 
-knitr::kable(sigs)
+#knitr::kable(sigs)
+
+# wrangle data for nicer table format
+# make table of results
+
+#tab <- as.data.frame(plasmamod[2]) %>% 
+  # fix up 'metabolite' name
+  mutate(metabolite = str_remove(gsub("\\.", "-", metabolite), "X")) %>% 
+  select(metabolite, comparison, contrast, diff, lwr, upr, p.adj)
+
+#write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-threewayANOVA-posthoc.txt", sep = "\t",
+            row.names = FALSE)
 
 ```
 
@@ -272,8 +384,8 @@ knitr::kable(sigs)
 ```{r}
 
 # get metabolites with significant interaction term
-sigs <- data.frame(plasmamod[1]) %>% 
-  filter(pvalEx_Wt < 0.05)
+sigsInt <- data.frame(plasmamod[2]) %>% 
+  filter(comparison == "Ex-Wt")
 
 sigdf <- plasma %>% 
   semi_join(sigs, by = "metabolite") %>% 
@@ -299,9 +411,12 @@ ggplot(data = sigdf, aes(x = Exercise, y = mean, group = Weight, color = Weight)
 
 ```{r}
 
+# get significant interactions
+sigAll <- as.data.frame(plasmamod[2]) %>% 
+  filter(comparison == "Ex-Wt-Time")
 
 sigdf <- plasma %>% 
-  semi_join(sigs, by = "metabolite") %>% 
+  semi_join(sigAll, by = "metabolite") %>% 
   group_by(metabolite, treatmentID, Time, Exercise, Weight) %>% 
   summarize(mean = mean(area),
             sd = sd(area),
