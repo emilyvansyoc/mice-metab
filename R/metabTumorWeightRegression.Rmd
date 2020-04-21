@@ -1,0 +1,177 @@
+---
+title: "Metabolomics-Tumor Weight Regressions"
+author: "Emily Bean"
+date: "4/21/2020"
+output: rmarkdown::github_document
+---
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE,
+                      fig.align = "center", fig.width = 8, fig.width = 7, fig.margin = TRUE)
+
+```
+
+This script performs linear regressions on tumor measurements and metabolite concentrations. Metabolites with a significant regression p value are plotted. 
+
+```{r echo = FALSE, include = FALSE}
+## Read in all data and load packages
+require(tidyverse)
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
+
+# read all aqueous data
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
+  mutate(tissue.type =
+           case_when(Label %in% "tumor" ~ "tumor",
+                     Label %in% "plasmaD7" ~ "plasma",
+                     Label %in% "plasmaD21" ~ "plasma",
+                     Label %in% "plasmaD35" ~ "plasma"))
+
+# read tumor measurements
+meas <- read.table("https://github.com/EmilyB17/mice-metab/raw/master/data/tumor-measurements.txt",
+                   sep = "\t", header = TRUE, stringsAsFactors = FALSE)
+# combine tumor measurements and aqueous data
+dat <- aq %>% 
+  # add Time column
+  mutate(Time = factor(case_when(
+    Label %in% "plasmaD7" ~ "D7",
+    Label %in% "plasmaD21" ~ "D21",
+    Label %in% "plasmaD35" ~ "D35",
+    # we want tumor measurements from day 35 for tumor tissue
+    Label %in% "tumor" ~ "D35"
+  )))  %>% 
+  mutate(mouseID = as.character(mouseID),
+         Time = as.character(Time)) %>% 
+  # combine with tumor measurements
+  left_join(meas, by = c("mouseID" = "Mouse", "Time"))
+
+# get plasma and tumor tissue separately
+plasma <- dat %>% filter(tissue.type == "plasma")
+tumor <- dat %>% filter(tissue.type == "tumor") %>% select(-Time)
+
+```
+
+### Tumor
+
+```{r}
+
+metabs <- unique(tumor$metabolite)
+vals <- data.frame()
+
+
+for(i in 1:length(metabs)) {
+  
+  # get each metabolite at a time
+  cordat <- tumor %>% filter(metabolite == metabs[i])
+  # perform correlation test
+  mod <- summary(lm(area ~ cm3, data = cordat))
+  
+  # get output data
+  vals <- rbind(vals,
+                data.frame(metabolite = metabs[i],
+                           adjrsq = round(mod$adj.r.squared, 3),
+                           pval = round(mod$coefficients[2,4], 3)))
+  
+}
+
+# get significance
+sig <- vals[vals$pval < 0.05,]
+# make dataframe
+sigdf <- tumor %>% 
+  semi_join(sig, by = "metabolite")
+
+
+# plot significant models
+ggplot(data = sigdf,
+       aes(x = area, y = cm3)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = "y ~ x") +
+  facet_wrap(~ metabolite, scales = "free") +
+  labs(x = "Log Area", y = "Tumor volume(cm3)", title = "Tumor Tissue at Sac")
+
+```
+
+### Plasma
+
+```{r}
+
+metabs <- unique(plasma$metabolite)
+times <- unique(plasma$Time)
+vals <- data.frame()
+
+
+for(i in 1:length(metabs)) {
+  
+  for(j in 1:length(times)) {
+    
+    # get each metabolite at a time
+    cordat <- plasma%>% filter(metabolite == metabs[i] & Time == times[j])
+    # perform correlation test
+    mod <- summary(lm(area ~ cm3, data = cordat))
+    
+    # get output data
+    vals <- rbind(vals,
+                  data.frame(metabolite = metabs[i],
+                             Time = times[j],
+                             adjrsq = round(mod$adj.r.squared, 3),
+                             pval = round(mod$coefficients[2,4], 3)))
+    
+    
+  }
+}
+
+# get significant metabolites
+sig <- vals[vals$pval < 0.05,]
+
+# semi join
+sigdf <- plasma %>% 
+  semi_join(sig, by = c("metabolite", "Time"))
+
+
+```
+
+```{r}
+
+# separate by day
+d7 <- sigdf %>% filter(Time == "D7")
+
+# plot significant models
+ggplot(data = d7,
+       aes(x = area, y = cm3)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = "y ~ x") +
+  facet_wrap(~ metabolite, scales = "free") +
+  labs(x = "Log Area", y = "Tumor volume(cm3)", title = "UMP at D7")
+
+```
+
+```{r}
+
+# D21
+d21 <- sigdf %>% filter(Time == "D21")
+# plot significant models
+ggplot(data = d21,
+       aes(x = area, y = cm3)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = "y ~ x") +
+  facet_wrap(~ metabolite, scales = "free") +
+  labs(x = "Log Area", y = "Tumor volume(cm3)", title = "Plasma at D21")
+
+```
+
+```{r}
+
+# D35
+d35 <- sigdf %>% filter(Time == "D35") 
+# plot significant models
+ggplot(data = d35,
+       aes(x = area, y = cm3)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = "y ~ x") +
+  facet_wrap(~ metabolite, scales = "free") +
+  labs(x = "Log Area", y = "Tumor volume(cm3)", title = "Plasma at D35")
+
+```
+
