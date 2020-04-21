@@ -1,0 +1,152 @@
+---
+title: "Lipidomics Heatmaps"
+author: "Emily Bean"
+date: "March 30, 2020"
+output: 
+  rmarkdown::github_document
+---
+
+```{r setup, echo = FALSE}
+
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE,
+                      # figure margins
+                      fig.margin = TRUE,
+                      fig.fullwidth = TRUE,
+                      fig.align = "center")
+
+```
+
+
+
+```{r}
+
+# read in data
+require(dplyr)
+require(tidyr)
+require(ggplot2)
+require(tibble)
+require(stringr)
+require(emmeans)
+require(data.table)
+require(gplots)
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
+
+# read all lipids data
+# this is a big dataset and will be slow
+lip <- fread("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allLipidsCleaned.txt", header = TRUE)  %>% 
+  # add column of functional groups
+  mutate(group = as.factor(sapply(str_split(lipid, " "), `[`, 1)),
+         # set log.area to numberic
+         log.area = as.numeric(log.area)) %>% 
+  # for now: remove w/o
+  filter(!group == "w/o")
+
+# make separate tumor and plasma dataframes for easier analysis 
+plasma <- lip %>% 
+  filter(!tissue.type == "tumor") %>% 
+  mutate(Time = factor(str_extract(SampleName, "(\\d{1,2})"), 
+                       ordered = TRUE, levels = c("7", "21", "35")))
+# tumor df 
+tumor <- filter(lip, tissue.type == "tumor")
+
+
+```
+
+
+```{r}
+
+## define function to perform an ANOVA, post-hoc emmeans, and return significant data
+
+myAnova <- function(df, variable, lipidGroups) {
+  
+  # make empty dataframe
+  sigsdf <- data.frame()
+  
+  # perform ANOVA and emmeans post-hoc
+  for(i in 1:length(lipidGroups)) {
+    
+    # create function
+    f <- as.formula(paste0("log.area ~", variable))
+    
+    # perform ANOVA
+    mod <- aov(f, data = filter(df, group == lipidGroups[i]))
+    
+    # collect variables
+    pvals <- data.frame(lipid = lipidGroups[i],
+                        fStat =  round(summary(mod)[[1]][["F value"]][1], 4))
+    
+    # perform emmeans post-hoc
+    f1 <- as.formula(paste0("pairwise ~", variable))
+    e <- as.data.frame(emmeans(mod, f1)$contrasts,
+                       rownames = FALSE)
+    
+    # append to outDF
+    out <- cbind(pvals, e)
+    
+    # get only significant p values to send out
+    out <- out[out$p.value < 0.05, ] 
+    
+    # return dataframe of significant variables
+    sigsdf <- rbind(sigsdf, out)
+    
+    
+  }
+  
+  # round variables to make it easier to read
+  sigsdf$SE <- round(sigsdf$SE, 3)
+  sigsdf$t.ratio <- round(sigsdf$t.ratio, 3)
+  sigsdf$p.value <- round(sigsdf$p.value, 3)
+  
+  # return the dataframe of significant variables
+  
+  return(sigsdf)
+}
+
+```
+
+
+## Plasma v tumor
+
+```{r}
+# plasma v tumor
+
+# ANOVA - get top 25 significant variables
+mod <- myAnova(variable = "tissue.type",
+               df = lip,
+               lipidGroups = unique(lip$group)) %>%
+  arrange(desc(fStat)) %>% 
+  head(25)
+
+# get significant metabolites
+sigs <- lip[lip$group %in% mod$lipid, ] 
+
+# parse into matrix for heatmap
+sigsmat <- as.matrix(sigs %>% 
+                       # make unique identifying column
+                    mutate(idstr = str_remove_all(mouseID, "160711-"),
+                              idcol = paste(idstr, tissue.type, sep = "_")) %>% 
+                      # summarize
+                      group_by(group, tissue.type, treatmentID,
+                               Exercise, Weight, idcol) %>% 
+                      summarize(meanLog = mean(log.area, na.rm = T)) %>% 
+                       # make horizontal
+                       pivot_wider(names_from = group, values_from = meanLog) %>% 
+                       # make the identifying column into rownames
+                       column_to_rownames(var = "idcol") %>% 
+                       # keep only metabolites
+                       select_at(.vars = as.character(unique(sigs$group)))
+)
+
+
+```
+
+
+```{r}
+
+# draw heatmap
+heatmap.2(t(sigsmat), scale = "row", col = bluered(100), trace = "none", density.info = "none", margins = c(10, 12), cexRow = 1, cexCol = 1)
+
+```
+
