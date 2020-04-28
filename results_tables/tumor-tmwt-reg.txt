@@ -1,0 +1,13 @@
+"metabolite"	"adjrsq"	"pval"
+"Glycerate"	0.18	0.031
+"Hydroxyproline.Aminolevulinate"	0.218	0.019
+"Homocysteine.Methylcysteine"	0.238	0.014
+"Indole.3.carboxylic.acid"	0.187	0.029
+"Quinolinate"	0.157	0.042
+"Glyceraldehdye.3.phosphate"	0.149	0.047
+"Acetyl.aspartate"	0.39	0.001
+"Allantoate"	0.237	0.015
+"Glucose"	0.156	0.043
+"X3.Phospho.serine"	0.184	0.03
+"Pantetheine"	0.387	0.002
+"FMN"	0.187	0.029

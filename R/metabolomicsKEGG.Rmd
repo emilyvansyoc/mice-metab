@@ -1,0 +1,96 @@
+---
+title: "Metabolomics KEGG Orthology"
+author: "Emily Bean"
+date: "4/24/2020"
+output: github_document
+---
+
+### Functional orthology from KEGG database
+
+Metabolite compound names were matched to KEGG numbers in MetaboAnalyst, KEGG, or PubChem. 
+
+One metabolite did not match to any KEGG or Pubchem numbers: Octoluse-bisphosphate. This is removed from further analyses in this script.
+
+There are 15 metabolites which did not match to KEGG numbers, so they are not included in this analysis.
+
+```{r}
+
+require(tidyverse)
+require(KEGGREST)
+#BiocManager::install("KEGGREST")
+require(omu)
+
+
+# set ggplot2 them
+ggplot2::theme_set(theme_bw())
+
+# read all aqueous data
+aq <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/allAqueousCleaned.txt", header = TRUE, stringsAsFactors = TRUE) %>% 
+  mutate(tissue.type =
+           case_when(Label %in% "tumor" ~ "tumor",
+                     Label %in% "plasmaD7" ~ "plasma",
+                     Label %in% "plasmaD21" ~ "plasma",
+                     Label %in% "plasmaD35" ~ "plasma"))
+
+# read data with kegg numbers
+keggs <- read.csv("./data/kegg.csv", sep = ",", header = TRUE, stringsAsFactors = FALSE) %>% 
+  # fix issue with reading KEGG
+  mutate(KEGG = str_extract(KEGG, "C(\\d+)")) %>% 
+  select(-Comment) %>% 
+  # drop the metabolites with no KEGG match
+  drop_na(KEGG)
+
+# wrangling to put kegg numbers and data together
+tomatch <- aq %>% 
+  # make unique id considering time and tissue for each mouse
+  mutate(id = paste(mouseID, Label, sep = "_")) %>% 
+  select(-c(mouseID, tissue.type, Label)) %>% 
+  # some text wrangling to get metabolite names to match up
+  mutate(metabolite = 
+           str_remove(metabolite, "X")) %>% 
+  mutate(metabolite = str_replace_all(metabolite, "\\.", "-")) %>% 
+  mutate(metabolite = str_remove_all(metabolite, "-$")) %>% 
+  mutate(metabolite = as.character(metabolite))
+
+# merge
+both <- tomatch %>% 
+  right_join(keggs, by = c("metabolite" = "Query"))
+
+# format for omu package - need count data and metadata
+samps <- both %>% 
+  select(id, Match, KEGG, area) %>% 
+  pivot_wider(names_from = id, values_from = area, names_prefix = "S") %>% 
+  rename(Metabolite = Match)
+
+meta <- both %>% 
+  select(id, Exercise, Weight, treatmentID) %>% 
+  distinct() %>% 
+  mutate(id = paste0("S", id)) 
+
+```
+
+
+```{r}
+
+# get assignment with omu package
+assign <- as.data.frame(assign_hierarchy(count_data = samps, keep_unknowns = FALSE, identifier = "KEGG"))
+
+# make vertical for plotting
+assignv <- assign %>% 
+  pivot_longer(cols = starts_with("S15"), names_to = "id", values_to = "area") %>% 
+  left_join(meta, by = "id") %>% 
+  mutate(tissue.type = case_when(
+    str_detect(id, "tumor") ~ "tumor",
+    str_detect(id, "plasma") ~ "plasma"
+    ),
+    
+    Time = case_when(
+      tissue.type %in% "plasma" ~ sapply(str_extract(id,  "D(\\d+)"), `[`, 1),
+      tissue.type %in% "tumor" ~ "tumor"
+    )
+  )
+
+
+```
+
+

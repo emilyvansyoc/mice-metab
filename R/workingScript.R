@@ -1,90 +1,57 @@
-
-# separating positive and negative ions
-
-pos <- lip %>% filter(ion == "POS") %>% 
-  mutate(lipname = sapply(str_split(lipid, ";"), `[`, 1))
-
-neg <- lip %>% filter(ion == "NEG") %>% 
-  mutate(lipname = sapply(str_split(lipid, ";"), `[`, 1))
-
-unique(pos$lipid)
-unique(neg$lipid)
-
-posn <- paste(unique(pos$lipname), sep = "|")
-negn <- unique(neg$lipname)
-
-# there are 205 that are in both positive and negative runs
-match <- posn[posn %in% negn]
-
-
-### interaction plots
-
-# get metabolites with significant interaction term
-sigs <- data.frame(plasmamod[1]) %>% 
-  filter(pvalEx_Wt < 0.05)
-
-sigdf <- plasma %>% 
-  semi_join(sigs, by = "metabolite") %>% 
-  group_by(metabolite, Exercise, Weight) %>% 
-  summarize(mean = mean(area),
-            sd = sd(area),
-            cilow = mean - 1.96*sd,
-            cihi = mean + 1.96*sd) %>% 
-  ungroup()
-
-# make a plot
-ggplot(data = sigdf, aes(x = Exercise, y = mean, group = Weight, color = Weight)) +
-  geom_point() +
-  geom_line() +
-  geom_errorbar(data = sigdf, aes(ymin = mean + sd, ymax = mean - sd), width = .1) +
-  facet_wrap(~metabolite) +
-  ggtitle("Significant Interactions w/o Time") +
-  labs(x = "Exercise", y = "Mean area")
-
-## interactions with Time
-sigs <- data.frame(plasmamod[1]) %>% 
-  filter(pvalEx_Wt_Time < 0.05)
-
-sigdf <- plasma %>% 
-  semi_join(sigs, by = "metabolite") %>% 
-  group_by(metabolite, Exercise, Weight, Time) %>% 
-  summarize(mean = mean(area),
-            sd = sd(area),
-            cilow = mean - 1.96*sd,
-            cihi = mean + 1.96*sd) %>% 
-  ungroup()
-
-# make plots
-ggplot(data = sigdf) +
-  geom_point(aes(x = Time, y = mean, group = Exercise, color = Exercise)) +
-  geom_line(aes(x = Time, y = mean, group = Exercise, color = Exercise)) +
-  geom_point(aes(x = Time, y = mean, group = Weight, color = Weight)) +
-  geom_line(aes(x = Time, y = mean, group = Weight, color = Weight))
-  #geom_line() +
-  #geom_errorbar(data = sigdf, aes(ymin = mean + sd, ymax = mean - sd), width = .1) +
-  facet_wrap(~metabolite) +
-  ggtitle("Significant Interactions") +
-  labs(x = "Exercise", y = "Mean area")
-
-
-ggplot(data = sigdf, aes(x = Time, y = mean, group = treatmentID, color = treatmentID)) +
-  geom_point(aes(shape = Exercise)) +
-  geom_line(aes(linetype = Weight)) +
-  facet_wrap(~metabolite) +
-  ggtitle("Significant Interactions")+
-  labs(x = "Exercise", y = "Mean area")
-
-
-sigdf <- plasma %>% 
-  semi_join(sigs, by = "metabolite") %>% 
-  group_by(metabolite, treatmentID, Time, Exercise, Weight) %>% 
-  summarize(mean = mean(area),
-            sd = sd(area),
-            cilow = mean - 1.96*sd,
-            cihi = mean + 1.96*sd) %>% 
-  ungroup()
-
-
-## get p values from tukey instead
-
-sig <- data.frame(tumormod[2])
+# define a function to perform two-way ANOVA
+myTwoWayAnova <- function(df, metabList) {
+  
+  
+  # make output dataframes
+  allpvals <- data.frame()
+  posthoc_sigs <- data.frame()
+  
+  # loop through each metabolite
+  for(i in 1:length(metabList)) {
+    
+    # perform ANOVA on the iterated metabolite
+    mod <- aov(area ~ Exercise*Weight, data = filter(df, metabolite == metabList[i]))
+    
+    # collect p values and F statistics
+    pvals <- data.frame(metabolite = metabList[i],
+                        fStatEx =  round(summary(mod)[[1]][["F value"]][1], 3),
+                        pvalEx = round(summary(mod)[[1]][["Pr(>F)"]][1], 3),
+                        fStatWt = round(summary(mod)[[1]][["F value"]][2], 3),
+                        pvalWt = round(summary(mod)[[1]][["Pr(>F)"]][2], 3),
+                        fStatInt = round(summary(mod)[[1]][["F value"]][3], 3),
+                        pvalInt = round(summary(mod)[[1]][["Pr(>F)"]][3], 3))
+    
+    # save to an outDF
+    allpvals <- rbind(allpvals, pvals)
+    
+    # perform Tukey post-hoc
+    tukey <- TukeyHSD(mod)
+    
+    # collect p vals
+    posthoc <- as.data.frame(rbind(as.data.frame(tukey[1]$Exercise) %>% 
+                                     mutate(comparison = "Exercise",
+                                            contrast = rownames(tukey[1]$Exercise)),
+                                   as.data.frame(tukey[2]$Weight) %>% 
+                                     mutate(comparison = "Weight",
+                                            contrast = rownames(tukey[2]$Weight)),
+                                   as.data.frame(tukey[3]$`Exercise:Weight`) %>% 
+                                     mutate(comparison = "Interaction",
+                                            contrast = rownames(tukey[3]$`Exercise:Weight`))))
+    
+    
+    # if there are any significant p vals, add to outDF
+    if(any(posthoc$`p adj` < 0.05)) {
+      
+      out <- posthoc %>% filter(`p adj` < 0.05)
+      out$metabolite <- metabList[i]
+      
+      posthoc_sigs <- rbind(posthoc_sigs, out)
+      
+    }
+    
+    
+  }
+  
+  # return the output dataframes
+  return(list(allpvals, posthoc_sigs))
+}
