@@ -8,11 +8,11 @@ output: rmarkdown::github_document
 ```{r setup, echo = FALSE}
 
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, collapse = TRUE,
-                      fig.align = "center", fig.width = 8, fig.width = 7, fig.margin = TRUE)
+                      fig.align = "center", fig.width = 5, fig.width = 8, fig.units = "in", fig.margin = TRUE)
 
 ```
 
-This script performs linear regressions on tumor measurements and metabolite concentrations. Metabolites with a significant regression p value are plotted. 
+This script performs linear regressions on tumor measurements and metabolite concentrations. Metabolites with a significant regression p value are plotted below. 
 
 ```{r echo = FALSE, include = FALSE}
 ## Read in all data and load packages

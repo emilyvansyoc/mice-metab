@@ -1,0 +1,8 @@
+"Class"	"fStatEx"	"pvalEx"	"fStatWt"	"pvalWt"	"fStatInt"	"pvalInt"
+"Lipids"	0.332	0.566	2.839	0.096	1.22	0.273
+"Organic acids"	0.83	0.363	2.705	0.101	1.251	0.264
+"Vitamins and Cofactors"	0.033	0.856	0.16	0.689	0.029	0.864
+"Peptides"	0.318	0.573	4.616	0.032	0.16	0.689
+"Nucleic acids"	0.599	0.439	0.006	0.941	1.88	0.171
+"Phytochemical compounds"	0.044	0.835	0.106	0.745	0.229	0.633
+"Carbohydrates"	0.006	0.937	0.356	0.552	0.026	0.872

@@ -1,26 +1,51 @@
----
-title: "Metabolomics KEGG Orthology"
-author: "Emily Bean"
-date: "4/24/2020"
-output: github_document
----
+Metabolomics KEGG Orthology
+================
+Emily Bean
+4/24/2020
 
 ### Functional orthology from KEGG database
 
-Class compound names were matched to KEGG numbers in MetaboAnalyst, KEGG, or PubChem. 
+Class compound names were matched to KEGG numbers in MetaboAnalyst, KEGG, or PubChem.
 
 One Class did not match to any KEGG or Pubchem numbers: Octoluse-bisphosphate. This is removed from further analyses in this script.
 
 There are 15 Classs which did not match to KEGG numbers, so they are not included in this analysis.
 
-```{r}
-
+``` r
 require(tidyverse)
+```
+
+    ## Loading required package: tidyverse
+
+    ## Warning: package 'tidyverse' was built under R version 3.6.3
+
+    ## -- Attaching packages --------------------------------- tidyverse 1.3.0 --
+
+    ## v ggplot2 3.2.1     v purrr   0.3.3
+    ## v tibble  2.1.3     v dplyr   0.8.3
+    ## v tidyr   1.0.2     v stringr 1.4.0
+    ## v readr   1.3.1     v forcats 0.4.0
+
+    ## -- Conflicts ------------------------------------ tidyverse_conflicts() --
+    ## x dplyr::filter() masks stats::filter()
+    ## x dplyr::lag()    masks stats::lag()
+
+``` r
 require(KEGGREST)
+```
+
+    ## Loading required package: KEGGREST
+
+``` r
 #BiocManager::install("KEGGREST")
 require(omu)
+```
 
+    ## Loading required package: omu
 
+    ## Warning: package 'omu' was built under R version 3.6.3
+
+``` r
 # set ggplot2 them
 ggplot2::theme_set(theme_bw())
 
@@ -66,15 +91,17 @@ meta <- both %>%
   select(id, Exercise, Weight, treatmentID) %>% 
   distinct() %>% 
   mutate(id = paste0("S", id)) 
-
 ```
 
-
-```{r}
-
+``` r
 # get assignment with omu package
 assign <- as.data.frame(assign_hierarchy(count_data = samps, keep_unknowns = FALSE, identifier = "KEGG"))
+```
 
+    ## Warning: Column `KEGG` joining character vector and factor, coercing into
+    ## character vector
+
+``` r
 # make vertical for plotting
 assignv <- assign %>% 
   pivot_longer(cols = starts_with("S15"), names_to = "id", values_to = "area") %>% 
@@ -91,11 +118,9 @@ assignv <- assign %>%
   )
 
 # write.table("")
-
 ```
 
-```{r}
-
+``` r
 # define a function to perform two-way ANOVA
 myTwoWayAnova <- function(df, class) {
   
@@ -153,13 +178,9 @@ myTwoWayAnova <- function(df, class) {
   # return the output dataframes
   return(list(allpvals, posthoc_sigs))
 }
-
-
 ```
 
-
-```{r}
-
+``` r
 # define function to perform three-way ANOVA with Time
 myThreeWayAnova <- function(df, class) {
   
@@ -236,28 +257,21 @@ myThreeWayAnova <- function(df, class) {
   # return the output dataframes
   return(list(allpvals, posthoc_sigs))
 }
-
-
 ```
 
 ### Two-way ANOVA: Exercise, Weight, and Interaction in Tumor Tissue
 
-```{r}
-
+``` r
 df = filter(assignv, tissue.type == "tumor")
 tumormod <- myTwoWayAnova(df, 
                           class = unique(df$Class))
-
-
 ```
-
 
 Only Peptides have significance: between Weight treatment
 
-
 **Table of all F statistics & unadjusted p values**
 
-```{#r}
+```
 
 # print table of all pvalues
 #knitr::kable(as.data.frame(tumormod[1]))
@@ -270,13 +284,11 @@ tab <- as.data.frame(tumormod[1])
 write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-keggClass-twowayANOVA-fstat_pval.txt", sep = "\t",
             row.names = FALSE)
 
-
 ```
 
 **Table of significant and adjusted p values from Tukey's post hoc **
 
-```{r}
-
+``` r
 # print table of all significant post-hoc findings
 sigs <- as.data.frame(tumormod[2]) %>% 
   select(Class = Class, comparison, contrast, p.adj) %>% 
@@ -292,13 +304,11 @@ sigs <- as.data.frame(tumormod[2]) %>%
  # select(Class = Class, comparison, contrast, diff, lwr, upr, p.adj)
 
 #write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-keggClass-twowayANOVA-posthoc.txt", sep = "\t",  row.names = FALSE)
-
 ```
 
 **Visualizations**
 
-```{r}
-
+``` r
 ## only significance is PEPTIDES: plot
 ## get Classs with just Weight significance
 sigWt <- data.frame(tumormod[2]) %>% 
@@ -319,21 +329,20 @@ ggplot(data = sigdfWt, aes(x = Weight, y = mean, group =Class, color = Class)) +
   geom_point() +
   geom_line() +
   labs(x = "Weight", y = "Mean log area", title = "Significant between Weight treatment")
-
 ```
 
+![](metabolomicsKEGG_files/figure-markdown_github/unnamed-chunk-7-1.png)
 
 ### Three-way ANOVA: Exercise, Weight, Time, Interaction in Plasma Tissue
 
-```{r}
-
+``` r
 plasmamod <- myThreeWayAnova(df = filter(assignv, tissue.type == "plasma"),
                         class = unique(df$Class))
 ```
 
 **Table of all F statistics & p values**
 
-```{#r}
+```
 
 # print table of all pvalues
 #knitr::kable(as.data.frame(plasmamod[1]))
@@ -345,14 +354,11 @@ tab <- as.data.frame(plasmamod[1])
 
 write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-keggClass-threewayANOVA-fstat_pval.txt", sep = "\t",
             row.names = FALSE)
-
 ```
-
 
 **Table of significant p values from Tukey's post hoc **
 
-```{r}
-
+``` r
 # print table of all significant post-hoc findings
 sigs <- as.data.frame(plasmamod[2]) %>% 
   select(Class, comparison, contrast, p.adj) %>% 
@@ -366,13 +372,11 @@ sigs <- as.data.frame(plasmamod[2]) %>%
 #tab <- as.data.frame(plasmamod[2]) %>%  select(Class, comparison, contrast, diff, lwr, upr, p.adj)
 
 #write.table(tab, "C:/Users/emily/OneDrive - The Pennsylvania State University/Research/git/mice-metab/results_tables/aqueous-keggClass-threewayANOVA-posthoc.txt", sep = "\t",           row.names = FALSE)
-
 ```
 
 **Interactions without Time**
 
-```{r}
-
+``` r
 # get Classs with significant interaction term
 sigsInt <- data.frame(plasmamod[2]) %>% 
   filter(comparison == "Ex-Wt")
@@ -395,13 +399,13 @@ ggplot(data = sigdf, aes(x = Exercise, y = mean, group = Weight, color = Weight)
   facet_wrap(~Class) +
   ggtitle("Significant Interactions w/o Time") +
   labs(x = "Exercise", y = "Mean log area")
-
 ```
+
+![](metabolomicsKEGG_files/figure-markdown_github/unnamed-chunk-10-1.png)
 
 **Interactions with Ex, Weight, and Time**
 
-```{r}
-
+``` r
 # get significant interactions
 sigAll <- as.data.frame(plasmamod[2]) %>% 
   filter(comparison == "Ex-Wt-Time")
@@ -424,7 +428,6 @@ ggplot(data = sigdf, aes(x = Time, y = mean, group = treatmentID, color = treatm
   facet_wrap(~Class) +
   ggtitle("Significant Interactions")+
   labs(x = "Exercise", y = "Mean log area")
-
 ```
 
-
+![](metabolomicsKEGG_files/figure-markdown_github/unnamed-chunk-11-1.png)

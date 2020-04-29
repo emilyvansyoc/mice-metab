@@ -1,0 +1,2 @@
+"Class"	"comparison"	"contrast"	"diff"	"lwr"	"upr"	"p.adj"
+"Peptides"	"Weight"	"ER-AL"	0.298341154866049	0.0249748024729578	0.57170750725914	0.0325097623693469
