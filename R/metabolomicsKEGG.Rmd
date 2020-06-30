@@ -56,6 +56,13 @@ tomatch <- aq %>%
 both <- tomatch %>% 
   right_join(keggs, by = c("metabolite" = "Query"))
 
+# get vector of old & new metabolite names
+names <- both %>% 
+  select(metabolite, Match) %>% 
+  distinct() %>% 
+  # add . instead of -
+  mutate(oldnames = str_replace_all(metabolite, "-", "."))
+
 # format for omu package - need count data and metadata
 samps <- both %>% 
   select(id, Match, KEGG, area) %>% 

@@ -19,3 +19,8 @@ treatmentIntcols <- c("EX-AL" = hex[7], "EX-ER" = hex[8], "SED-AL" = hex[9], "SE
 
 # accent colors
 accentcols <- c(hex[8:12])
+
+## let's get more colors than RColorBrewer allows
+getPalette <- colorRampPalette(brewer.pal(n = 9, name = "Paired"))
+
+

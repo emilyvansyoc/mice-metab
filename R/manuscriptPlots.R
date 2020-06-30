@@ -2,10 +2,11 @@
 ### ---- PCA ----
 ## PCA for Manuscript plots 
 
-## ---- getData ----
-
 # get data
 source("./R/metabolomicsPCA.Rmd")
+
+# get colors
+source("./R/RColorBrewer.R")
 
 # set ggplot theme
 theme_set(theme_minimal())
@@ -201,3 +202,82 @@ ggplot(data = filter(assignv, tissue.type == "plasma"),
 
 #ggsave(filename = "./data/plots/barplot-plasma-treatment-class.tiff", plot = last_plot(), dpi = "print")
 
+### ----- ANOVA barplots ----
+
+#source("./R/metabolomicsANOVAs.Rmd")
+
+# function to calculate standard error
+se <- function(x) sqrt(var(x)/length(x))
+
+## TUMOR
+
+# get significant interaction terms
+df <- as.data.frame(tumormod[2]) %>% 
+  filter(comparison == "Interaction")
+df # Hydroxyproline.Aminolevulinate, Quinolinate, Acetyl.aspartate, Glucose
+
+# get these metabolites
+mets <- c("Hydroxyproline.Aminolevulinate", "Quinolinate", "Acetyl.aspartate", "Glucose")
+subdf <- aq %>% 
+  filter(tissue.type == "tumor") %>% 
+  filter(metabolite %in% mets) %>% 
+  # get the correct metabolite names 
+  inner_join(names, by = c("metabolite" = "oldnames")) %>% 
+  # change column names to only keep correct metabolite names
+  select(-metabolite, Metabolite = Match) %>% 
+  # calculate mean & se
+  group_by(Metabolite, treatmentID) %>% 
+  summarize(meanarea = mean(area),
+            searea = se(area)) %>% 
+  ungroup() %>% 
+  # change _ to - in treatmentID
+  mutate(treatmentID = str_replace_all(treatmentID, "_", "-"))
+
+# make plot
+ggplot(data = subdf, aes(x = treatmentID, y = meanarea, fill = Metabolite)) +
+  geom_col(position = position_dodge()) +
+  geom_errorbar(aes(ymin = meanarea - searea, ymax = meanarea + searea), 
+                position = position_dodge(width = 0.9), width = 0.2) +
+  scale_fill_manual(values = accentcols) %>% 
+  labs(x = "Treatment", y = "Area Under the Curve")
+#ggsave(filename = "./data/plots/barplot-tumor-ANOVA-interactions.tiff", plot = last_plot(), dpi = "print")
+
+### PLASMA
+
+pdf <- as.data.frame(plasmamod[2]) %>% 
+  # get only interactions
+  filter(comparison == "Ex-Wt-Time")
+
+# subset data to get significant interactions
+psub <- aq %>% 
+  filter(tissue.type == "plasma") %>% 
+  left_join(names, by = c("metabolite" = "oldnames")) %>% 
+  select(-metabolite.y) %>% 
+  mutate(Metab.name = case_when(
+    !is.na(Match) ~ Match,
+    is.na(Match) ~ metabolite
+  )) %>% 
+  # get only some metabs
+  semi_join(pdf, by = "metabolite") %>% 
+  
+  # change column names to only keep correct metabolite names
+  rename(Metabolite = Metab.name) %>% 
+  # calculate mean & se
+  group_by(Metabolite, treatmentID, Label) %>% 
+  summarize(meanarea = mean(area),
+            searea = se(area)) %>% 
+  ungroup() %>% 
+  # change _ to - in treatmentID
+  mutate(treatmentID = str_replace_all(treatmentID, "_", "-"),
+         Time = case_when(
+           Label %in% "plasmaD7" ~ "Day 7",
+           Label %in% "plasmaD21" ~ "Day 21",
+           Label %in% "plasmaD35" ~ "Day 35"
+         )) %>% 
+  mutate(Time = factor(Time, ordered = TRUE, levels = c("Day 7", "Day 21", "Day 35")))
+
+ggplot(data = psub, aes(x = treatmentID, y = meanarea, fill = Metabolite)) +
+  geom_col(position = position_dodge(0.9)) +
+  facet_wrap(~Time) +
+  labs(x = "Treatment", y = "Scaled Concentration")
+#ggsave(filename = "./data/plots/barplot-plasma-ANOVA-interactions.tiff", plot = last_plot(), dpi = "print")
