@@ -1,172 +1,53 @@
+# anovas and kegg visualizations
 
-## PCA for Manuscript plots 
+## replace _ with - for plots
+assignv <- assignv %>% 
+  mutate(treatmentID = str_replace_all(treatmentID, "_", "-"))
 
-## ---- getData ----
-
-# get data
-source("./R/metabolomicsPCA.Rmd")
-
-# set ggplot theme
 theme_set(theme_minimal())
 
-# get KEGG-cleaned metabolites
-#source("./R/metabolomicsKEGG.Rmd") # the df we'll use is 'both'
+## tumor - barplot of metabolic classes
+ggplot(data = filter(assignv, tissue.type == "tumor"), 
+       aes(x = Class, y = area, fill = treatmentID)) +
+  geom_col() +
+  scale_fill_manual(values = treatmentIntcols) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Metabolic Class", y = "Area Under the Curve", fill = "Treatment")
 
-# wrangle data
-df <- both %>% 
-  select(Metabolite = Match,
-         id, treatmentID, Exercise, Weight, area)
+#ggsave(filename = "./data/plots/barplot-tumor-treatment-class.tiff", plot = last_plot(), dpi = "print")
 
-# structure for PCA (needs to be horizontal)
-dfh <- df %>% 
-  pivot_wider(names_from = Metabolite, values_from = area) %>% 
-  # get column for tissue type
-  mutate(tissue.type = sapply(str_split(id, "_"), `[`, 2)) %>% 
-  mutate(tissue.type1 = case_when(
-    tissue.type %in% "tumor" ~ "Tumor",
-    tissue.type %in% "plasmaD7" ~ "Plasma",
-    tissue.type %in% "plasmaD21" ~ "Plasma",
-    tissue.type %in% "plasmaD35" ~ "Plasma"
-  )) %>% 
-  column_to_rownames(var = "id")
+## plasma - barplot of metabolic classes
+ggplot(data = filter(assignv, tissue.type == "plasma"), 
+       aes(x = Class, y = area, fill = treatmentID)) +
+  geom_col() +
+  scale_fill_manual(values = treatmentIntcols) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Metabolic Class", y = "Area Under the Curve", fill = "Treatment")
 
-# remove extra columns for PCA
-dfpca <- dfh %>% 
-  select(-c(treatmentID, Exercise, Weight, tissue.type, tissue.type1))
+#ggsave(filename = "./data/plots/barplot-plasma-treatment-class.tiff", plot = last_plot(), dpi = "print")
 
-## ---- Tissue Type ----
+## test plot
+test <- assignv %>% 
+  # make a smaller dataset
+  slice_sample(n = 10)
 
-# make the PCA
-pca <- PCA(dfpca, 
-            scale.unit = TRUE, # scale everything to equal variance
-            graph = FALSE) # don't print a graph
+ggplot(data = test, aes(x = Exercise, y = area, fill = Metabolite)) +
+  geom_col()
 
+# get significant data
+se <- function(x) sqrt(var(x)/length(x))
 
-# plot the biplot WITH LABELS 
-fviz_pca_biplot(pca,
-                # how to color the points
-                col.in = dfh$tissue.type1,
-                legend.title = "Tissue Type",
-                # shape of the points
-                geom.ind = "point",
-                # no transparency
-                alpha.ind = 1,
-                # add ellipses at 95% confidence level
-                addEllipses = TRUE,
-                ellipse.level = 0.95,
-                # only show the variables that have top 5 "contribution" to the pca
-                select.var = list(contrib = 10),
-                col.var = "black",
-                #label = "none",
-                # don't let them overlap
-                repel = TRUE,
-                # x and y axis labels with variance
-                xlab = paste0("PCA1 (", round(pca$eig[1, 2], 1), "%)"),
-                ylab = paste0("PCA2 (", round(pca$eig[2, 2], 1), "%)"),
-                title = NULL)+
-  scale_color_manual(values = tissuecols)
+df <- as.data.frame(tumormod[2])
 
-# save
-ggsave(filename = "./data/plots/pca-plasma-tumor-labels.tiff", plot = last_plot(), dpi = "print")
-
-## PCA with NO LABELS 
-
-fviz_pca_biplot(pca,
-                # how to color the points
-                col.in = dfh$tissue.type1,
-                legend.title = "Tissue Type",
-                # shape of the points
-                geom.ind = "point",
-                # no transparency
-                alpha.ind = 1,
-                # add ellipses at 95% confidence level
-                addEllipses = TRUE,
-                ellipse.level = 0.95,
-                # only show the variables that have top 5 "contribution" to the pca
-                select.var = list(contrib = 10),
-                col.var = "black",
-                label = "none",
-                # don't let them overlap
-                repel = TRUE,
-                # x and y axis labels with variance
-                xlab = paste0("PCA1 (", round(pca$eig[1, 2], 1), "%)"),
-                ylab = paste0("PCA2 (", round(pca$eig[2, 2], 1), "%)"),
-                title = NULL)+
-  scale_color_manual(values = tissuecols)
-# save
-ggsave(filename = "./data/plots/pca-plasma-tumor-nolabels.tiff", plot = last_plot(), dpi = "print")
-
-## ---- 4 treatment groups: Tumor ----
-
-# get just tumor
-tumordf <- dfh %>% 
-  filter(tissue.type1 == "Tumor")
-tumorpca <- tumordf %>% 
-  select(-c(treatmentID, Exercise, Weight, tissue.type, tissue.type1))
-
-# make the PCA
-pca <- PCA(tumorpca, 
-           scale.unit = TRUE, # scale everything to equal variance
-           graph = FALSE) # don't print a graph
-
-
-# plot the biplot WITH LABELS 
-fviz_pca_ind(pca,
-                # how to color the points
-                col.ind = tumordf$treatmentID,
-                legend.title = "Treatment",
-                # shape of the points
-                geom.ind = "point",
-                #addEllipses = TRUE,
-                # only show the variables that have top 5 "contribution" to the pca
-                #select.var = list(contrib = 10),
-                #col.var = "black",
-                #label = "none",
-                # don't let them overlap
-                #repel = TRUE,
-                # x and y axis labels with variance
-                xlab = paste0("PCA1 (", round(pca$eig[1, 2], 1), "%)"),
-                ylab = paste0("PCA2 (", round(pca$eig[2, 2], 1), "%)"),
-                title = NULL) +
-  scale_color_manual(values = treatmentIntcols)
-
-# save
-ggsave(filename = "./data/plots/pca-tumor-treatments.tiff", plot = last_plot(), dpi = "print")
-
-## ---- 4 treatment groups: Plasma ----
-
-# get just tumor
-plasmadf <- dfh %>% 
-  filter(tissue.type1 == "Plasma")
-plasmapca <- plasmadf %>% 
-  select(-c(treatmentID, Exercise, Weight, tissue.type, tissue.type1))
-
-# make the PCA
-pca <- PCA(plasmapca, 
-           scale.unit = TRUE, # scale everything to equal variance
-           graph = FALSE) # don't print a graph
-
-
-# plot the biplot WITH LABELS 
-fviz_pca_ind(pca,
-             # how to color the points
-             col.ind = plasmadf$treatmentID,
-             legend.title = "Treatment",
-             # shape of the points
-             geom.ind = "point",
-             #addEllipses = TRUE,
-             # only show the variables that have top 5 "contribution" to the pca
-             #select.var = list(contrib = 10),
-             #col.var = "black",
-             #label = "none",
-             # don't let them overlap
-             #repel = TRUE,
-             # x and y axis labels with variance
-             xlab = paste0("PCA1 (", round(pca$eig[1, 2], 1), "%)"),
-             ylab = paste0("PCA2 (", round(pca$eig[2, 2], 1), "%)"),
-             title = NULL) +
-  scale_color_manual(values = treatmentIntcols)
-
-# save
-ggsave(filename = "./data/plots/pca-plasma-treatments.tiff", plot = last_plot(), dpi = "print")
-
+test <- assignv  %>% 
+  filter(tissue.type == "tumor") %>% 
+  semi_join(df, by = c("Metabolite" = "metabolite")) %>% 
+  group_by(Metabolite, treatmentID) %>% 
+  summarize(meanarea = mean(area),
+            searea = se(area))
+  
+ggplot(data = test, aes(x = treatmentID, y = meanarea, fill = Metabolite)) +
+  geom_col(position = position_dodge()) +
+  geom_errorbar(aes(ymin = meanarea - searea, ymax = meanarea + searea), 
+                position = position_dodge(width = 0.9), width = 0.2) +
+  scale_fill_manual(values = accentcols)

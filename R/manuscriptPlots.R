@@ -1,4 +1,5 @@
 
+### ---- PCA ----
 ## PCA for Manuscript plots 
 
 ## ---- getData ----
@@ -169,4 +170,34 @@ fviz_pca_ind(pca,
 
 # save
 ggsave(filename = "./data/plots/pca-plasma-treatments.tiff", plot = last_plot(), dpi = "print")
+
+## ---- KEGG classes ----
+
+#source("./R/metabolomicsKEGG.Rmd")
+
+## replace _ with - for plots
+assignv <- assignv %>% 
+  mutate(treatmentID = str_replace_all(treatmentID, "_", "-"))
+
+theme_set(theme_minimal())
+
+## tumor - barplot of metabolic classes
+ggplot(data = filter(assignv, tissue.type == "tumor"), 
+       aes(x = Class, y = area, fill = treatmentID)) +
+  geom_col() +
+  scale_fill_manual(values = treatmentIntcols) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Metabolic Class", y = "Area Under the Curve", fill = "Treatment")
+
+#ggsave(filename = "./data/plots/barplot-tumor-treatment-class.tiff", plot = last_plot(), dpi = "print")
+
+## plasma - barplot of metabolic classes
+ggplot(data = filter(assignv, tissue.type == "plasma"), 
+       aes(x = Class, y = area, fill = treatmentID)) +
+  geom_col() +
+  scale_fill_manual(values = treatmentIntcols) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(x = "Metabolic Class", y = "Area Under the Curve", fill = "Treatment")
+
+#ggsave(filename = "./data/plots/barplot-plasma-treatment-class.tiff", plot = last_plot(), dpi = "print")
 
