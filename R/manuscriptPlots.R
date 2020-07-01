@@ -1,15 +1,21 @@
 
-### ---- PCA ----
-## PCA for Manuscript plots 
-
-# get data
-source("./R/metabolomicsPCA.Rmd")
+## ---- PREP ----
 
 # get colors
 source("./R/RColorBrewer.R")
 
 # set ggplot theme
 theme_set(theme_minimal())
+
+# function to calculate standard error
+se <- function(x) sqrt(var(x)/length(x))
+
+### ---- PCA ----
+## PCA for Manuscript plots 
+
+# get data
+#source("./R/metabolomicsPCA.Rmd")
+
 
 # get KEGG-cleaned metabolites
 #source("./R/metabolomicsKEGG.Rmd") # the df we'll use is 'both'
@@ -223,8 +229,10 @@ subdf <- aq %>%
   filter(metabolite %in% mets) %>% 
   # get the correct metabolite names 
   inner_join(names, by = c("metabolite" = "oldnames")) %>% 
-  # change column names to only keep correct metabolite names
-  select(-metabolite, Metabolite = Match) %>% 
+  mutate(Metabolite = case_when(
+    is.na(KEGGMatch) ~ cleanednames,
+    !is.na(KEGGMatch) ~ KEGGMatch
+  )) %>% 
   # calculate mean & se
   group_by(Metabolite, treatmentID) %>% 
   summarize(meanarea = mean(area),
@@ -239,8 +247,9 @@ ggplot(data = subdf, aes(x = treatmentID, y = meanarea, fill = Metabolite)) +
   geom_errorbar(aes(ymin = meanarea - searea, ymax = meanarea + searea), 
                 position = position_dodge(width = 0.9), width = 0.2) +
   scale_fill_manual(values = accentcols) %>% 
-  labs(x = "Treatment", y = "Area Under the Curve")
-#ggsave(filename = "./data/plots/barplot-tumor-ANOVA-interactions.tiff", plot = last_plot(), dpi = "print")
+  labs(x = "Treatment", y = "Area Under the Curve") +
+  facet_wrap(~Metabolite)
+#ggsave(filename = "./data/plots/barplot-tumor-ANOVA-interactions-facetwrap.tiff", plot = last_plot(), dpi = "print")
 
 ### PLASMA
 
@@ -281,3 +290,49 @@ ggplot(data = psub, aes(x = treatmentID, y = meanarea, fill = Metabolite)) +
   facet_wrap(~Time) +
   labs(x = "Treatment", y = "Scaled Concentration")
 #ggsave(filename = "./data/plots/barplot-plasma-ANOVA-interactions.tiff", plot = last_plot(), dpi = "print")
+
+
+## ---- Tumor tissue regressions ----
+
+# source("./R/metabTumorWeightRegression.Rmd")
+
+# run just Tumor chunk
+
+# get correct metabolite names
+
+tumdf <- sigdf %>% 
+  left_join(names, by = c("metabolite" = "oldnames")) %>% 
+  mutate(Metabolite = case_when(
+    is.na(KEGGMatch) ~ cleanednames,
+    !is.na(KEGGMatch) ~ KEGGMatch
+  ))
+
+ggplot(data = tumdf, aes(x = area, y = cm3)) +
+  geom_point() +
+  # add best fit line without 95% confidence interval
+  geom_smooth(method = "lm", formula = "y ~ x", se = FALSE, fullrange = TRUE) +
+  facet_wrap(~Metabolite, scales = "free") +
+  labs(x = "Scaled area", y = "Tumor volume (cm3)")
+#ggsave(filename = "./data/plots/tumor-reg-tumortissue.tiff", plot = last_plot(), dpi = "print")
+
+## run just PLASMA chunk
+
+# now there is a Time consideration 
+
+plasdf <- sigdf %>% 
+  left_join(names, by = c("metabolite" = "oldnames")) %>% 
+  # not all metabolites have a KEGG match
+  mutate(Metabolite = case_when(
+    is.na(KEGGMatch) ~ cleanednames,
+    !is.na(KEGGMatch) ~ KEGGMatch
+  ),
+  Time = factor(Time, ordered = TRUE, levels = c("D7", "D21", "D35")))
+
+# plot with Time as facet grid
+ggplot(data = plasdf, aes(x = area, y = cm3)) +
+  geom_point() +
+  # add best fit line without 95% confidence interval
+  geom_smooth(method = "lm", formula = "y ~ x", se = FALSE, fullrange = TRUE) +
+  facet_wrap(Time ~ Metabolite, scales = "free") +
+  labs(x = "Scaled area", y = "Tumor volume (cm3)")
+#ggsave(filename = "./data/plots/tumor-reg-plasma.tiff", plot = last_plot(), dpi = "print")

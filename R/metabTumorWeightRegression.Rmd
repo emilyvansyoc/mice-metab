@@ -71,7 +71,7 @@ for(i in 1:length(metabs)) {
   # get output data
   vals <- rbind(vals,
                 data.frame(metabolite = metabs[i],
-                           adjrsq = round(mod$adj.r.squared, 3),
+                           rsq = round(mod$r.squared, 3),
                            pval = round(mod$coefficients[2,4], 3)))
   
 }
