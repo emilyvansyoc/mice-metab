@@ -46,18 +46,28 @@ tomatch <- aq %>%
   mutate(id = paste(mouseID, Label, sep = "_")) %>% 
   select(-c(mouseID, tissue.type, Label)) %>% 
   # some text wrangling to get metabolite  names to match up
-  mutate(metabolite = 
+  mutate(newmetabolite = 
            str_remove(metabolite , "X")) %>% 
-  mutate(metabolite  = str_replace_all(metabolite , "\\.", "-")) %>% 
-  mutate(metabolite  = str_remove_all(metabolite , "-$")) %>% 
-  mutate(metabolite  = as.character(metabolite ))
+  mutate(newmetabolite  = str_replace_all(newmetabolite , "\\.", "-")) %>% 
+  mutate(newmetabolite  = str_remove_all(newmetabolite , "-$")) %>% 
+  mutate(newmetabolite  = as.character(newmetabolite ))
 
 # merge
 both <- tomatch %>% 
-  right_join(keggs, by = c("metabolite" = "Query"))
+  left_join(keggs, by = c("newmetabolite" = "Query"))
+
+# get just vector of metabolite names for plots
+names <- both %>% 
+  select(metabolite, newmetabolite, Match) %>% 
+  distinct() %>% 
+  rename(oldnames = metabolite,
+         cleanednames = newmetabolite,
+         KEGGMatch = Match)
+
 
 # format for omu package - need count data and metadata
 samps <- both %>% 
+  drop_na() %>% 
   select(id, Match, KEGG, area) %>% 
   pivot_wider(names_from = id, values_from = area, names_prefix = "S") %>% 
   rename(Metabolite = Match)
