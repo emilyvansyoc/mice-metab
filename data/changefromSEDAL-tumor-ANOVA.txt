@@ -1,0 +1,18 @@
+"Metabolite"	"avgchange_EX-AL"	"avgchange_EX-ER"	"avgchange_SED-AL"	"avgchange_SED-ER"	"sechange_EX-AL"	"sechange_EX-ER"	"sechange_SED-AL"	"sechange_SED-ER"
+"5-Thymidylic acid"	-0.859	0.971	0	-0.05	0.716	0.205	0	0.304
+"Acetylphosphate"	1.533	-0.49	0	0.127	0.872	0.348	0	0.381
+"ADP"	-1.436	0.567	0	0.755	0.927	0.447	0	0.234
+"D-Glucose"	0.066	-0.697	0	-0.408	0.014	0.22	0	0.132
+"Hydroxyproline"	0.589	-0.672	0	0.039	0.25	0.24	0	0.211
+"Indole-3-carboxylic acid"	0.405	-0.568	0	-0.444	0.373	0.261	0	0.196
+"L-Alanine"	-0.635	0.393	0	0.442	0.415	0.131	0	0.115
+"L-Arginine"	0.622	-0.597	0	-0.098	0.136	0.352	0	0.296
+"L-Cystathionine"	1.273	1.547	0	1.05	0.314	0.319	0	0.509
+"L-Glutamine"	0.031	0.526	0	0.351	0.276	0.145	0	0.061
+"L-Histidine"	0.564	0.993	0	0.849	0.41	0.151	0	0.099
+"L-Lysine"	0.342	0.668	0	0.364	0.238	0.261	0	0.081
+"N-Acetyl-L-aspartic acid"	-0.77	0.234	0	0.58	0.512	0.271	0	0.086
+"Quinolinic acid"	-1.838	-3.045	0	-2.049	0.803	0.689	0	0.214
+"Succinic acid"	1.152	-0.534	0	-0.547	0.854	0.175	0	0.135
+"Taurine"	0.512	1.281	0	1.281	0.769	0	0	0
+"Uridine triphosphate"	0.23	-1.182	0	-1.44	0.975	0.293	0	0.13
