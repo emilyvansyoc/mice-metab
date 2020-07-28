@@ -82,6 +82,42 @@ df <- abdat %>%
 # write to table
 #write.table(df, "./data/changefromSEDAL-tumor-ANOVA.txt", sep = "\t", row.names = FALSE)
 
+## PLOTS --- make one plot for each of the metabolites, then put together in PPT
+
+# re-order treatments: EX-AL, SED-ER, EX-ER
+plotdat <- abdat %>% 
+  filter(!treatmentID == "SED-AL") %>% 
+  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("EX-AL", "SED-ER", "EX-ER"))) %>% 
+  semi_join(sigs, by = "Metabolite")
+
+## do this in a loop
+met <- unique(plotdat$Metabolite)
+
+for(i in 1:length(met)) {
+  # create plot
+  plot <- ggplot(data = filter(plotdat, Metabolite == met[i]), aes(x = treatment, y = ab.change, fill = treatment)) +
+    geom_boxplot() +
+    geom_jitter(width = 0.08, size = 2) +
+    scale_fill_manual(values = treatmentIntcols) +
+    theme_classic() +
+    labs(x = "Treatment", y = "Change from SED-AL", fill = "Treatment") +
+    ggtitle(as.character(met[i]))
+  
+  # save
+  ggsave(filename = paste0("./data/plots/indiv-boxplot-tumor-ANOVA-", as.character(met[i]), ".png"), plot = plot, dpi = 600, height = 4.35, width = 7.32, units = "in")
+  
+  # print progress
+  cat(as.character(met[i]))
+}
+
+# for manuscript: need number of replicates (mice) in each treatment
+reps <- abdat %>% 
+  filter(str_detect(id, "_tumor")) %>% 
+  group_by(treatmentID) %>% 
+  summarize(reps = length(unique(id)))
+
+
+
 ## PLOTS: Weight effects under exercise (EX-ER vs EX-AL)
 wt <- c("5-Thymidylic acid", "Acetylphosphate", "ADP", "D-Glucose", "Hydroxproline", "Indole-3-carboxylic acid",
         "L-Alanine", "L-Arginine", "Succinic acid")
@@ -211,6 +247,39 @@ df <- d35 %>%
 
 # write to table
 #write.table(df, "./data/changefromSEDAL-plasma-d35-ANOVA.txt", sep = "\t", row.names = FALSE)
+
+### PLOTS --- make one plot for each of the metabolites, then put together in PPT
+
+# re-order treatments: EX-AL, SED-ER, EX-ER
+plotdat <- d35 %>% 
+  filter(!treatmentID == "SED-AL") %>% 
+  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("EX-AL", "SED-ER", "EX-ER"))) %>% 
+  semi_join(sigs, by = "Metabolite")
+
+## do this in a loop
+met <- unique(plotdat$Metabolite)
+
+for(i in 1:length(met)) {
+  # create plot
+  plot <- ggplot(data = filter(plotdat, Metabolite == met[i]), aes(x = treatment, y = ab.change, fill = treatment)) +
+    geom_boxplot() +
+    geom_jitter(width = 0.08, size = 2) +
+    scale_fill_manual(values = treatmentIntcols) +
+    theme_classic() +
+    labs(x = "Treatment", y = "Change from SED-AL", fill = "Treatment") +
+    ggtitle(as.character(met[i]))
+  
+  # save
+  ggsave(filename = paste0("./data/plots/indiv-boxplot-plasmad35-ANOVA-", as.character(met[i]), ".png"), plot = plot, dpi = 600, height = 4.35, width = 7.32, units = "in")
+  
+  # print progress
+  cat(as.character(met[i]))
+}
+
+# for the manuscript: need the number of replicates shown in each group
+reps <- plotdat %>% 
+  group_by(treatmentID, Metabolite) %>% 
+  summarize(rep = length(unique(id)))
 
 ## PLOTS: EX-ER vs SED-ER (exercise-induced changes under energy restriction)
 met <- c("D-4'-Phosphopantothenate", "Phenyllactic acid", "Xanthine")
