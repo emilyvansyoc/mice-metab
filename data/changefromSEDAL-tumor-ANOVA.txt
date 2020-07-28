@@ -1,4 +1,4 @@
-"Metabolite"	"avgchange_EX-AL"	"avgchange_EX-ER"	"avgchange_SED-AL"	"avgchange_SED-ER"	"sechange_EX-AL"	"sechange_EX-ER"	"sechange_SED-AL"	"sechange_SED-ER"
+"Metabolite"	"avgchange_PA+AL"	"avgchange_PA+ER"	"avgchange_SED+AL"	"avgchange_SED+ER"	"sechange_PA+AL"	"sechange_PA+ER"	"sechange_SED+AL"	"sechange_SED+ER"
 "5-Thymidylic acid"	-0.859	0.971	0	-0.05	0.716	0.205	0	0.304
 "Acetylphosphate"	1.533	-0.49	0	0.127	0.872	0.348	0	0.381
 "ADP"	-1.436	0.567	0	0.755	0.927	0.447	0	0.234

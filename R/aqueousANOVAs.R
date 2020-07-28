@@ -299,7 +299,73 @@ ggplot(data = exdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
 #ggsave(filename = "./data/plots/changeSEDAL-plasma-EXERvsSEDER.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
 
 
-### 2. 
+### 2. Each metabolite over time (within treatments) 
+
+# get unique metabolites and treatments
+trt <- unique(abdat$treatmentID)
+mets <- unique(abdat$Metabolite)
+
+pvals <- data.frame()
+
+for(j in 1:length(trt)) {
+  
+  for(i in 1:length(mets)) {
+    
+    # define model
+    mod <- aov(ab.change ~ Time, data = filter(abdat, treatmentID == trt[j] & Metabolite == mets[i]))
+    
+    # do Tukey posthoc
+    tukey <- TukeyHSD(mod)
+    
+    # get p vals
+    ps <- data.frame(Metabolite = mets[i],
+                     treatmentID = trt[j],
+                     contrast = rownames(tukey[1]$Time),
+                     pval = tukey[1]$Time[,4],
+                     row.names = NULL)
+    
+    # concatenate
+    pvals <- rbind(pvals, ps)
+  }
+}
+
+# get significant 
+sigs <- pvals %>% 
+  filter(pval < 0.05)
+
+### PLOT ---- plot all significant 
+plotdat <- abdat %>% 
+  semi_join(sigs, by = "Metabolite") %>% 
+  filter(!treatmentID == "SED+AL") %>% 
+  group_by(treatmentID, Metabolite, Time) %>% 
+  summarize(avg = mean(ab.change),
+            se = se(ab.change)) %>% 
+  ungroup() %>% 
+  mutate(Time = factor(Time, ordered = TRUE, levels = c("Day 7", "Day 21", "Day 35")),
+         treatmentID = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
 
 
+# set conditional term for errorbars (thanks, Google)
+limits <- aes(
+  ymax = avg + (avg > 0)*se,  
+  ymin = avg - (avg < 0)*se)
 
+
+# create the plots in a loop
+met <- unique(plotdat$Metabolite)
+
+for(i in 1:length(met)) {
+  
+  # make plot
+  plot <- ggplot(data = filter(plotdat, Metabolite == met[i]), aes(x = Time, y = avg, fill = treatmentID)) +
+    geom_bar(stat = "identity", position = position_dodge(0.95), color = "black") +
+    geom_errorbar(limits, position = position_dodge(0.95), width = 0.6) +
+    scale_fill_manual(values = treatmentGreys) +
+    labs(x = "Time", y = "Change from SED+AL", fill = "Treatment", title = met[i])
+  
+  # save 
+  ggsave(filename = paste0("./data/plots/indiv-barplots-plasma-ANOVA-", as.character(met[i]), ".png"), plot = plot, dpi = 600, height = 4.35, width = 7.32, units = "in")
+  
+  # print progress
+  cat(as.character(met[i]))
+}
