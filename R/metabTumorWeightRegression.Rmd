@@ -107,7 +107,7 @@ for(i in 1:length(metabs)) {
   for(j in 1:length(times)) {
     
     # get each metabolite at a time
-    cordat <- plasma%>% filter(metabolite == metabs[i] & Time == times[j])
+    cordat <- plasma %>% filter(metabolite == metabs[i] & Time == times[j])
     # perform correlation test
     mod <- summary(lm(area ~ cm3, data = cordat))
     

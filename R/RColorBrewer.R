@@ -13,8 +13,9 @@ hex <- brewer.pal(n = 12, name = "Paired")
 
 # save the desired colors to your variables
 tissuecols <- c("Plasma" = hex[1], "Tumor" = hex[2])
-treatmentcols <- c("EX" = hex[3], "SED" = hex[4], "AL" = hex[5], "ER" = hex[6])
+#treatmentcols <- c("EX" = hex[3], "SED" = hex[4], "AL" = hex[5], "ER" = hex[6])
 treatmentIntcols <- c("EX-AL" = hex[7], "EX-ER" = hex[8], "SED-AL" = hex[9], "SED-ER" = hex[10])
+timecols <- c("Day 7" = hex[3], "Day 21" = hex[4], "Day 35" = hex[5])
 
 
 # accent colors

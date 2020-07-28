@@ -100,7 +100,7 @@ assignv <- assign %>%
     )
   )
 
-# write.table("")
+# write.table(assignv, file = "./data/aqeuousKEGG_Assignments.txt", sep = "\t", row.names = FALSE)
 
 ```
 

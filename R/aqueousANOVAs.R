@@ -133,7 +133,7 @@ ggplot(data = filter(exdat, treatmentID == "EX-ER"), aes(x = Metabolite, y = mea
 ## save 
 #ggsave(filename = "./data/plots/changeSEDAL-tumor-EX-ER.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
 
-## ---- PLASMA ----
+## ---- plasma ----
 
 # get only plasma and calculate Time column
 plasma <- dat %>% 
@@ -145,65 +145,186 @@ plasma <- dat %>%
     str_detect(id, "_plasmaD35") ~ "Day 35"
   ))
 
+# get the average of each SED-AL metabolite
 
-# get only D7
-d7 <- plasma %>% 
-  filter(Time == "Day 7") %>% 
+sedal <- plasma %>% 
+  # get only SED_AL
+  filter(treatmentID == "SED-AL") %>% 
   group_by(Metabolite) %>% 
-  summarize(avgD7 = mean(area),
-            seD7 = se(area))
+  # average
+  summarize(avgSedAl = mean(area),
+            seSedAl = se(area))
 
-# calculate change from D7
-tdat <- plasma %>% 
-  left_join(d7, by = "Metabolite") %>% 
-  mutate(ab.change = area - avgD7) %>% 
-  # change D7 to zero
+# get change compared to SED-AL
+abdat <- plasma %>% 
+  left_join(sedal, by = "Metabolite") %>% 
+  # calculate change
+  mutate(ab.change = area - avgSedAl) %>% 
+  # SED-AL is now 0
   mutate(ab.change = case_when(
-    Time == "Day 7" ~ 0,
-    Time != "Day 7" ~ ab.change
-  )) %>% 
-  select(id, treatmentID, Metabolite, Time, ab.change) %>% 
-  mutate(Time = factor(Time, ordered = TRUE, levels = c("Day 7", "Day 21", "Day 35")))
+    treatmentID %in% "SED-AL" ~ 0,
+    treatmentID != "SED-AL" ~ ab.change
+  ))%>% 
+  select(id, treatmentID, Time, Metabolite, ab.change) 
 
-# perform ANOVA for each metabolite and treatment to see changes over time
-metab <- unique(tdat$Metabolite)
-trt <- unique(tdat$treatmentID)
+### 1. ANOVA WITHIN D35 (are there metabolic changes at the end of tumor progression?)
+
+# get only d35
+d35 <- abdat %>% 
+  filter(Time == "Day 35") %>% 
+  mutate(treatmentID = factor(treatmentID))
+
+# do model loop
+metabs <- unique(d35$Metabolite)
 pvals <- data.frame()
 
-for(j in 1:length(metab)) {
+for(i in 1:length(metabs)) {
   
-  for(i in 1:length(trt)) {
-    
-    # define model
-    mod <- aov(ab.change ~ Time, data = filter(tdat, Metabolite == metab[j] & treatmentID == trt[i]))
-    
-    # do post-hoc
-    tukey <- TukeyHSD(mod)
-    
-    # get p vals
-    ps <- data.frame(Metabolite = metab[j],
-                     Treatment = trt[i],
-                     contrast = rownames(tukey[1]$Time),
-                     pval = round(tukey[1]$Time[,4], 3),
-                     row.names = NULL)
-    
-    # concatenate
-    pvals <- rbind(pvals, ps)
-    
-  }
+  # define model
+  mod <- aov(ab.change ~ treatmentID, data = filter(d35, Metabolite == metabs[i]))
+  
+  # do Tukey posthoc
+  tukey <- TukeyHSD(mod)
+  
+  # get p vals
+  ps <- data.frame(Metabolite = metabs[i],
+                   contrast = rownames(tukey[1]$treatmentID),
+                   pval = tukey[1]$treatmentID[,4],
+                   row.names = NULL)
+  
+  # concatenate
+  pvals <- rbind(pvals, ps)
+  
 }
 
-# get significance
-sigs <- pvals %>% filter(pval < 0.05)
+# get significant 
+sigs <- pvals %>% 
+  filter(pval < 0.05)
 
-sigEXER <- sigs %>% filter(Treatment == "EX-ER")
-# what's a good way to visualize this?
-sigdf <- tdat %>% 
-  semi_join(sigEXER, by = "Metabolite") %>% 
-  group_by(Metabolite, treatmentID, Time) %>% 
-  summarize(avg = mean(ab.change),
-            sd = se(ab.change))
+# get table of mean +/- SE for results section
+df <- d35 %>% 
+  semi_join(sigs, by = "Metabolite") %>% 
+  group_by(treatmentID, Metabolite) %>% 
+  summarize(avgchange = round(mean(ab.change), 3),
+            sechange = round(se(ab.change), 3)) %>% 
+  pivot_wider(names_from = treatmentID, values_from = c(avgchange, sechange))
 
-ggplot(data = filter(sigdf, treatmentID == "EX-ER"), aes(x = Time, y = avg, group = Metabolite)) +
-  geom_point() +
-  geom_line()
+# write to table
+#write.table(df, "./data/changefromSEDAL-plasma-d35-ANOVA.txt", sep = "\t", row.names = FALSE)
+
+## PLOTS: EX-ER vs SED-ER (exercise-induced changes under energy restriction)
+met <- c("D-4'-Phosphopantothenate", "Phenyllactic acid", "Xanthine")
+exdat <- d35 %>% 
+  filter(Metabolite %in% met) %>% 
+  filter(!treatmentID %in% "SED-AL") 
+
+# plot
+ggplot(data = exdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
+  geom_boxplot() +
+  facet_wrap(~Metabolite) +
+  scale_fill_manual(values = treatmentIntcols) +
+  labs(x = "Treatment", y = "Change from SED-AL", fill = "Treatment")
+
+## save 
+#ggsave(filename = "./data/plots/changeSEDAL-plasma-EXERvsSEDER.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
+
+### ---- KEGG functional groups -----
+
+# get data
+keg <- read.table("./data/aqeuousKEGG_Assignments.txt", sep = "\t", header = TRUE) %>% 
+  # Subclass_4 does not have any metabolites; remove
+  select(-Subclass_4) %>% 
+  # create one column for each unique group
+  mutate(allgroup = paste(Class, Subclass_1, Subclass_2, Subclass_3, sep = "_")) %>% 
+  # remove "S" from beginning of mouse name
+  mutate(id = str_remove_all(id, "S")) %>% 
+  # parse down for joining
+  select(Metabolite, allgroup) %>% 
+  distinct()
+
+# perform similar hypothesis testing
+
+## ---- tumor KEGG groups ----
+
+# get the average of each SED-AL metabolite
+
+sedal <- dat %>% 
+  # get only tumor
+  filter(str_detect(id, "_tumor")) %>% 
+  # get only SED_AL
+  filter(treatmentID == "SED-AL") %>% 
+  group_by(Metabolite) %>% 
+  # average
+  summarize(avgSedAl = mean(area),
+            seSedAl = se(area))
+
+# get change compared to SED-AL
+abdat <- dat %>% 
+  filter(str_detect(id, "_tumor")) %>% 
+  left_join(sedal, by = "Metabolite") %>% 
+  # calculate change
+  mutate(ab.change = area - avgSedAl) %>% 
+  # SED-AL is now 0
+  mutate(ab.change = case_when(
+    treatmentID %in% "SED-AL" ~ 0,
+    treatmentID != "SED-AL" ~ ab.change
+  ))%>% 
+  select(id, treatmentID, Metabolite, ab.change) %>% 
+  # get functional annotations
+  left_join(keg, by = "Metabolite") %>% 
+  drop_na()
+
+# perform ANOVA between treatment groups
+group <- unique(abdat$allgroup)
+pvals <- data.frame()
+
+for(i in 1:length(group)) {
+  
+  # define model
+  mod <- aov(ab.change ~ treatmentID, data = filter(abdat, allgroup == group[i]))
+  
+  # do Tukey posthoc
+  tukey <- TukeyHSD(mod)
+  
+  # get p vals
+  ps <- data.frame(Group = group[i],
+                   contrast = rownames(tukey[1]$treatmentID),
+                   pval = tukey[1]$treatmentID[,4],
+                   row.names = NULL)
+  
+  # concatenate
+  pvals <- rbind(pvals, ps)
+  
+}
+
+# get significant 
+sigs <- pvals %>% 
+  filter(pval < 0.05)
+
+# get table of mean +/- SE for results section
+df <- abdat %>% 
+  semi_join(sigs, by = "Metabolite") %>% 
+  group_by(treatmentID, Metabolite) %>% 
+  summarize(avgchange = round(mean(ab.change), 3),
+            sechange = round(se(ab.change), 3)) %>% 
+  pivot_wider(names_from = treatmentID, values_from = c(avgchange, sechange))
+
+# write to table
+#write.table(df, "./data/changefromSEDAL-tumor-ANOVA.txt", sep = "\t", row.names = FALSE)
+
+## PLOTS: Weight effects under exercise (EX-ER vs EX-AL)
+wt <- c("5-Thymidylic acid", "Acetylphosphate", "ADP", "D-Glucose", "Hydroxproline", "Indole-3-carboxylic acid",
+        "L-Alanine", "L-Arginine", "Succinic acid")
+wtdat <- abdat %>% 
+  filter(Metabolite %in% wt) %>% 
+  filter(!treatmentID %in% "SED-AL")
+
+ggplot(data = wtdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
+  geom_boxplot() +
+  facet_wrap(~Metabolite) +
+  scale_fill_manual(values = treatmentIntcols) +
+  labs(x = "Treatment", y = "Change from SED-AL", fill = "Treatment")
+
+# save 
+#ggsave(filename = "./data/plots/changeSEDAL-tumor-weighteffects.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
+
