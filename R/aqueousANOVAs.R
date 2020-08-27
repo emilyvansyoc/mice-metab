@@ -124,13 +124,22 @@ wt <- c("5-Thymidylic acid", "Acetylphosphate", "ADP", "D-Glucose", "Hydroxproli
         "L-Alanine", "L-Arginine", "Succinic acid")
 wtdat <- abdat %>% 
   filter(Metabolite %in% wt) %>% 
-  filter(!treatmentID %in% "SED+AL")
+  filter(!treatmentID %in% "SED+AL") %>% 
+  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
 
 ggplot(data = wtdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
   geom_boxplot() +
   facet_wrap(~Metabolite) +
   scale_fill_manual(values = treatmentIntcols) +
   labs(x = "Treatment", y = "Change from SED+AL", fill = "Treatment")
+
+ggplot(data = wtdat, aes(x = Metabolite, y = ab.change, fill = treatment)) +
+  geom_boxplot() +
+  scale_fill_manual(values = treatmentGreys)
+
+require(ggpubr)
+ggboxplot(data = wtdat, x = "Metabolite", y = "ab.change", fill = "treatment", palette = "grey") 
+
 
 # save 
 #ggsave(filename = "./data/plots/changeSEDAL-tumor-weighteffects.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
@@ -158,14 +167,13 @@ exdat <- abdat %>%
   filter(Metabolite %in% ex) %>% 
   filter(!treatmentID %in% "SED+AL") %>% 
   group_by(treatmentID, Metabolite) %>% 
-  summarize(mean = mean(ab.change),
-            se = se(ab.change))
+  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER"))) %>% 
+  filter(treatment == "PA+ER")
 
-ggplot(data = filter(exdat, treatmentID == "PA+ER"), aes(x = Metabolite, y = mean, fill = treatmentID)) +
-  geom_col() +
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se, width = 0.2)) +
-  scale_fill_manual(values = treatmentIntcols) +
-  labs(x = "Metabolite", y = "Change from SED+AL", fill = "Treatment")
+plot <- ggboxplot(data = exdat, x = "Metabolite", y = "ab.change", fill = "grey")+
+  labs(x = "Metabolite", y = "Change from SED+AL") 
+ggpar(plot, ylim = c(-5, 5), yticks.by = 1, rotate = TRUE)
+
 
 ## save 
 #ggsave(filename = "./data/plots/changeSEDAL-tumor-PA+ER.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
@@ -332,6 +340,56 @@ for(j in 1:length(trt)) {
 # get significant 
 sigs <- pvals %>% 
   filter(pval < 0.05)
+
+# get table of mean +/- SE for results section
+df <- abdat %>% 
+  semi_join(sigs, by = "Metabolite") %>% 
+  group_by(treatmentID, Metabolite, Time) %>% 
+  summarize(avgchange = round(mean(ab.change), 3),
+            sechange = round(se(ab.change), 3)) %>% 
+  pivot_wider(names_from = c(treatmentID, Time), values_from = c(avgchange, sechange))
+
+# write to table
+#write.table(df, "./data/changefromSEDAL-plasma-Time-ANOVA.txt", sep = "\t", row.names = FALSE)
+
+# separate each treatment for writing to table (it's too big as-is)
+t1 <- abdat %>% 
+  semi_join(filter(sigs, treatmentID == "PA+ER"), by = "Metabolite") %>% 
+  filter(treatmentID == "PA+ER") %>% 
+  group_by(Metabolite, Time) %>% 
+  summarize(avgchange = round(mean(ab.change), 3),
+            sechange = round(se(ab.change), 3)) %>% 
+  pivot_wider(names_from = Time, values_from = c(avgchange, sechange))
+
+# write to table
+#write.table(t1, "./data/changefromSEDAL-plasma-Time-PA+ER-ANOVA.txt", sep = "\t", row.names = FALSE)
+
+t2 <- abdat %>% 
+  semi_join(filter(sigs, treatmentID == "PA+AL"), by = "Metabolite") %>% 
+  filter(treatmentID == "PA+AL") %>% 
+  group_by(Metabolite, Time) %>% 
+  summarize(avgchange = round(mean(ab.change), 3),
+            sechange = round(se(ab.change), 3)) %>% 
+  pivot_wider(names_from = Time, values_from = c(avgchange, sechange))
+
+# write to table
+#write.table(t2, "./data/changefromSEDAL-plasma-Time-PA+AL-ANOVA.txt", sep = "\t", row.names = FALSE)
+
+t3 <- abdat %>% 
+  semi_join(filter(sigs, treatmentID == "SED+ER"), by = "Metabolite") %>% 
+  filter(treatmentID == "SED+ER") %>% 
+  group_by(Metabolite, Time) %>% 
+  summarize(avgchange = round(mean(ab.change), 3),
+            sechange = round(se(ab.change), 3)) %>% 
+  pivot_wider(names_from = Time, values_from = c(avgchange, sechange))
+
+# write to table
+#write.table(t3, "./data/changefromSEDAL-plasma-Time-SED+ER-ANOVA.txt", sep = "\t", row.names = FALSE)
+
+
+
+
+
 
 ### PLOT ---- plot all significant 
 plotdat <- abdat %>% 

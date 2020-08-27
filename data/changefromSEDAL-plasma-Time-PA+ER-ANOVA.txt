@@ -1,0 +1,11 @@
+"Metabolite"	"avgchange_Day 21"	"avgchange_Day 35"	"avgchange_Day 7"	"sechange_Day 21"	"sechange_Day 35"	"sechange_Day 7"
+"D-4'-Phosphopantothenate"	0.613	-0.853	0.156	0.507	0.148	0.443
+"Glycerol 3-phosphate"	-1.073	0.318	-0.078	0.571	0.144	0.288
+"L-Alanine"	-1.157	0.527	-0.865	0.145	0.176	0.263
+"L-Asparagine"	-1.353	0.013	-1.187	0.573	0.125	0.328
+"L-Histidine"	-0.506	0.219	-0.434	0.251	0.111	0.176
+"L-Lysine"	-0.34	0.054	-0.865	0.203	0.188	0.129
+"L-Proline"	-0.633	0.59	-0.274	0.306	0.245	0.236
+"Quinolinic acid"	0.863	-0.809	-0.457	0.242	0.427	0.281
+"Uridine 5'-monophosphate"	-0.023	1.19	0.679	0.151	0.361	0.208
+"Xanthosine"	-1.197	0.798	0.706	0.674	0.206	0.571

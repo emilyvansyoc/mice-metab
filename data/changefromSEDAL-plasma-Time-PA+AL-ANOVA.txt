@@ -1,0 +1,6 @@
+"Metabolite"	"avgchange_Day 21"	"avgchange_Day 35"	"avgchange_Day 7"	"sechange_Day 21"	"sechange_Day 35"	"sechange_Day 7"
+"Homocysteine"	0.416	0.21	-0.414	0.127	0.105	0.221
+"Hydroxyproline"	0.484	-0.213	-0.545	0.206	0.212	0.262
+"Pipecolic acid"	0.163	-0.481	0.502	0.368	0.212	0.233
+"Sedoheptulose 1,7-bisphosphate"	0.926	-0.455	-0.319	0.075	0.074	0.15
+"Xanthosine"	-0.443	0.495	1.298	0.427	0.305	0.4

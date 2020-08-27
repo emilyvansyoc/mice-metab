@@ -1,0 +1,4 @@
+"Metabolite"	"avgchange_Day 21"	"avgchange_Day 35"	"avgchange_Day 7"	"sechange_Day 21"	"sechange_Day 35"	"sechange_Day 7"
+"Adenosine monophosphate"	-0.361	0.004	1.996	0.441	0.56	0.652
+"Xanthine"	-0.462	1.651	1.702	0.745	0.28	0.231
+"Xanthosine"	0.038	0.797	1.63	0.138	0.147	0.486
