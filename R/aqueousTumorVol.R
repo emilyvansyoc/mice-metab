@@ -87,13 +87,14 @@ pvals <- data.frame()
 
 for(i in 1:length(metab)) {
   
+  # regression (this considers BOTH day 21 and day 35 in the same data)
   mod <- summary(lm(area ~ cm3, data = filter(df, Metabolite == metab[i])))
   
   # get p values
   p <- data.frame(Metabolite = metab[i],
                   raw.p = round(mod$coefficients[2, 4], 3),
                   r2 = round(mod$r.squared, 3),
-                  adjp = p.adjust(mod$coefficients[2, 4], method = "fdr"))
+                  adjp = round(p.adjust(mod$coefficients[2, 4], method = "fdr"), 3))
   
   # store p vals
   pvals <- rbind(pvals, p)
