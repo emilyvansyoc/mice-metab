@@ -49,7 +49,8 @@ for(i in 1:length(metab)) {
   p <- data.frame(Metabolite = metab[i],
                   raw.p = round(mod$coefficients[2, 4], 3),
                   r2 = round(mod$r.squared, 3),
-                  adjp = p.adjust(mod$coefficients[2, 4], method = "fdr"))
+                  adjp = p.adjust(mod$coefficients[2, 4], method = "fdr"),
+                  slope = round(mod$coefficients[2,1], 3))
   
   # store p vals
   pvals <- rbind(pvals, p)
@@ -57,7 +58,12 @@ for(i in 1:length(metab)) {
 
 # get significant p values
 sigs <- pvals %>% 
-  filter(adjp < 0.05)
+  filter(adjp < 0.05) %>% 
+  # get column for positive and negative slopes
+  mutate(sign = case_when(
+    slope > 0 ~ "pos",
+    slope < 0 ~ "neg"
+  ))
 
 # save table of results
 #write.table(sigs, "./data/tumorvol-regression-tumor.txt", sep = "\t", row.names = FALSE)
@@ -94,7 +100,8 @@ for(i in 1:length(metab)) {
   p <- data.frame(Metabolite = metab[i],
                   raw.p = round(mod$coefficients[2, 4], 3),
                   r2 = round(mod$r.squared, 3),
-                  adjp = round(p.adjust(mod$coefficients[2, 4], method = "fdr"), 3))
+                  adjp = round(p.adjust(mod$coefficients[2, 4], method = "fdr"), 3),
+                  slope = round(mod$coefficients[2,1], 3))
   
   # store p vals
   pvals <- rbind(pvals, p)
@@ -102,7 +109,13 @@ for(i in 1:length(metab)) {
 
 # get significant p values
 sigs <- pvals %>% 
-  filter(adjp < 0.05)
+  filter(adjp < 0.05) %>% 
+  # get column for positive and negative slopes
+  mutate(sign = case_when(
+    slope > 0 ~ "pos",
+    slope < 0 ~ "neg"
+  ))
+
 
 # save table of results
 #write.table(sigs, "./data/tumorvol-regression-plasma-alltime.txt", sep = "\t", row.names = FALSE)

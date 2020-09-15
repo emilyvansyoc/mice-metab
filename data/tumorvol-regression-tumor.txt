@@ -1,13 +1,13 @@
-"Metabolite"	"raw.p"	"r2"	"adjp"
-"Glyceric acid"	0.031	0.221	0.03143121860512
-"Hydroxyproline"	0.019	0.257	0.0189739372394459
-"Homocysteine"	0.014	0.276	0.0143691441053444
-"Indole-3-carboxylic acid"	0.029	0.227	0.0289102456259548
-"Quinolinic acid"	0.042	0.199	0.0424949303052466
-"Glyceraldehyde 3-phosphate"	0.047	0.191	0.0473223719985182
-"N-Acetyl-L-aspartic acid"	0.001	0.421	0.0014695120873371
-"Allantoic acid"	0.015	0.275	0.0146818795018678
-"D-Glucose"	0.043	0.198	0.0430077579184073
-"DL-O-Phosphoserine"	0.03	0.225	0.0298847244581799
-"Pantetheine"	0.002	0.418	0.00154649834460962
-"Flavin Mononucleotide"	0.029	0.228	0.0285924499750912
+"Metabolite"	"raw.p"	"r2"	"adjp"	"slope"	"sign"
+"Glyceric acid"	0.031	0.221	0.03143121860512	3.46	"pos"
+"Hydroxyproline"	0.019	0.257	0.0189739372394459	1.843	"pos"
+"Homocysteine"	0.014	0.276	0.0143691441053444	2.836	"pos"
+"Indole-3-carboxylic acid"	0.029	0.227	0.0289102456259548	2.21	"pos"
+"Quinolinic acid"	0.042	0.199	0.0424949303052466	4.08	"pos"
+"Glyceraldehyde 3-phosphate"	0.047	0.191	0.0473223719985182	4.274	"pos"
+"N-Acetyl-L-aspartic acid"	0.001	0.421	0.0014695120873371	-2.656	"neg"
+"Allantoic acid"	0.015	0.275	0.0146818795018678	3.329	"pos"
+"D-Glucose"	0.043	0.198	0.0430077579184073	1.097	"pos"
+"DL-O-Phosphoserine"	0.03	0.225	0.0298847244581799	3.887	"pos"
+"Pantetheine"	0.002	0.418	0.00154649834460962	-4.45	"neg"
+"Flavin Mononucleotide"	0.029	0.228	0.0285924499750912	-2.601	"neg"
