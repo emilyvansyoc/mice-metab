@@ -2,6 +2,7 @@
 ## ---- PREP ----
 
 # get colors
+require(tidyverse)
 source("./R/RColorBrewer.R")
 
 # set ggplot theme
@@ -10,6 +11,129 @@ theme_set(theme_minimal())
 # function to calculate standard error
 se <- function(x) sqrt(var(x)/length(x))
 
+## ----- 10/2020 work ----
+
+## ---- FIG 1: Plasma over time ----
+
+# get plasma data from R/aqueousANOVAs.R
+
+# get only PA+ER
+paer <- sigs %>% filter(treatmentID == "PA+ER")
+# filter data
+plotdat <- abdat %>% 
+  semi_join(paer, by = "Metabolite") %>% 
+  filter(treatmentID == "PA+ER") %>% 
+  mutate(Time = factor(Time, ordered = TRUE, levels = c("Day 7", "Day 21", "Day 35")))
+
+# Version 1: all 10 metabs on x axis, grouped by Time (may be too busy)
+ggplot(data = plotdat, aes(x = Metabolite, y = ab.change, fill = Time)) +
+  geom_boxplot() +
+  scale_fill_manual(values = timeGreys) +
+  labs(x = "Metabolite", y = "Change from SED+AL", fill = "Time") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Version 2: facet wrap by metabolite
+ggplot(data = plotdat, aes(x = Time, y = ab.change, fill = Time)) +
+  geom_boxplot() +
+  scale_fill_manual(values = timeGreys) +
+  labs(x = "Time", y = "Change from SED+AL", fill = "Time") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~Metabolite, scales = "free")
+
+## ---- FIG 2: Plasma at Day 35 ----
+
+
+## Version 1: Y axis is relative concentration (use "plasma" dataframe)
+## (run ANOVA from R/aqueousANOVAs.R before using dataframes)
+
+# filter data
+plotdat <- plasma %>% 
+  semi_join(sigs, by = "Metabolite") %>% 
+  filter(Time == "Day 35") %>% 
+  mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("SED+AL", "PA+AL", "SED+ER", "PA+ER")))
+
+# there's only 6 metabolites, so plot all in one 
+
+ggplot(data = plotdat, aes(x = treatmentID, y = area, fill = treatmentID)) +
+  geom_boxplot() +
+  scale_fill_manual(values = treatmentGreys) +
+  facet_wrap(~Metabolite, scales = "free") +
+  labs(x = "Treatment", y = "Relative concentration", fill = "Treatment") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+## Version 2: y axis is change SED+AL
+# filter data
+plotdat <- d35 %>% 
+  semi_join(sigs, by = "Metabolite") %>% 
+  filter(!treatmentID == "SED+AL") %>% 
+  mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
+
+# there's only 6 metabolites, so plot all in one 
+
+ggplot(data = plotdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
+  geom_boxplot() +
+  scale_fill_manual(values = treatmentGreys) +
+  facet_wrap(~Metabolite, scales = "free") +
+  labs(x = "Treatment", y = "Change from SED+AL", fill = "Treatment") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+## ---- FIG. 3 Plasma corr to tumor volume ----
+
+## Version 1: linear regression
+# FIRST: run regression at ./R/aqueousTumorVol.R
+
+plotdat <- df %>% 
+  semi_join(sigs, by = "Metabolite")
+
+ggplot(data = plotdat, aes(x = area, y = cm3)) +
+  geom_point(aes(shape = Time)) +
+  stat_smooth(se = FALSE, method = "lm") +
+  facet_wrap(~Metabolite, scales = "free") +
+  labs(x = "Relative concentration", y = "Tumor volume cm3")
+
+## ---- FIG. 4: Tumor corr to tumor volume ----
+
+## Version 1: linear regression
+plotdat <- df %>% 
+  semi_join(sigs, by = "Metabolite")
+
+ggplot(data = plotdat, aes(x = area, y = cm3)) +
+  geom_point() +
+  stat_smooth(se = FALSE, method = "lm") +
+  facet_wrap(~Metabolite, scales = "free") +
+  labs(x = "Relative concentration", y = "Tumor volume cm3")
+
+## ---- FIG. 5: Tumor differences between treatments (PA+ER and SED+AL) ----
+
+# use "dat" dataframe from R/aqueousANOVAs.R
+paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")
+
+## VERSION 1 : Y axis is relative concentration
+
+plotdat <- dat %>% 
+  semi_join(paer, by = "Metabolite") %>% 
+  filter(treatmentID == "PA+ER" | treatmentID == "SED+AL") %>% 
+  mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("SED+AL", "PA+ER")))
+
+ggplot(data = plotdat, aes(x = Metabolite, y = area, fill = treatmentID)) +
+  geom_boxplot() +
+  scale_fill_manual(values = treatmentGreys) +
+  labs(x = "Metabolite", y = "Relative concentration", fill = "Treatment") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+## Version 2: y axis is change from SED+AL
+
+plotdat <- abdat %>% 
+  semi_join(paer, by = "Metabolite") %>% 
+  filter(treatmentID == "PA+ER")
+
+ggplot(data = plotdat, aes(x = Metabolite, y = ab.change)) +
+  geom_col() +
+  labs(x = "Metabolite", y = "Change from SED+AL")
+
+
+## ---- OLDER PLOTS ----
 ### ---- PCA ----
 ## PCA for Manuscript plots 
 
@@ -42,7 +166,7 @@ dfh <- df %>%
 dfpca <- dfh %>% 
   select(-c(treatmentID, Exercise, Weight, tissue.type, tissue.type1))
 
-## ---- Tissue Type ----
+## ---- PCA by Tissue Type ----
 
 # make the PCA
 pca <- PCA(dfpca, 
@@ -104,7 +228,7 @@ fviz_pca_biplot(pca,
 # save
 ggsave(filename = "./data/plots/pca-plasma-tumor-nolabels.tiff", plot = last_plot(), dpi = "print")
 
-## ---- 4 treatment groups: Tumor ----
+## ---- PCA 4 treatment groups: Tumor ----
 
 # get just tumor
 tumordf <- dfh %>% 
@@ -141,7 +265,7 @@ fviz_pca_ind(pca,
 # save
 ggsave(filename = "./data/plots/pca-tumor-treatments.tiff", plot = last_plot(), dpi = "print")
 
-## ---- 4 treatment groups: Plasma ----
+## ---- PCA 4 treatment groups: Plasma ----
 
 # get just tumor
 plasmadf <- dfh %>% 
@@ -208,9 +332,9 @@ ggplot(data = filter(assignv, tissue.type == "plasma"),
 
 #ggsave(filename = "./data/plots/barplot-plasma-treatment-class.tiff", plot = last_plot(), dpi = "print")
 
-### ----- ANOVA barplots ----
+### ----- ANOVA barplots - OLD ----
 
-#source("./R/metabolomicsANOVAs.Rmd")
+#source("./R/aqueousANOVAs.R")
 
 # function to calculate standard error
 se <- function(x) sqrt(var(x)/length(x))
@@ -336,3 +460,6 @@ ggplot(data = plasdf, aes(x = area, y = cm3)) +
   facet_wrap(Time ~ Metabolite, scales = "free") +
   labs(x = "Scaled area", y = "Tumor volume (cm3)")
 #ggsave(filename = "./data/plots/tumor-reg-plasma.tiff", plot = last_plot(), dpi = "print")
+
+
+  

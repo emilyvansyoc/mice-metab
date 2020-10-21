@@ -31,4 +31,4 @@ grey <- brewer.pal(n = 9, name = "Greys")
 
 # save colors to variables
 treatmentGreys <- c("SED+AL" = grey[1], "PA+AL" = grey[4], "SED+ER" = grey[6], "PA+ER" = grey[8])
-
+timeGreys <- c("Day 7" = grey[1], "Day 21" = grey[4], "Day 35" = grey[7])
