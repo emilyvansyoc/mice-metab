@@ -3,6 +3,7 @@
 
 # get colors
 require(tidyverse)
+require(ggpubr)
 source("./R/RColorBrewer.R")
 
 # set ggplot theme
@@ -12,8 +13,48 @@ theme_set(theme_minimal())
 se <- function(x) sqrt(var(x)/length(x))
 
 ## ----- 10/2020 work ----
+## FIG 1 is Sherry's experimental design
 
-## ---- FIG 1: Plasma over time ----
+## ---- FIG. 2 Plasma corr to tumor volume ----
+
+## Version 1: linear regression
+# FIRST: run regression at ./R/aqueousTumorVol.R
+
+# plot positive and negative slopes separately
+pos <- sigs %>% filter(sign == "pos")
+neg <- sigs %>% filter(sign == "neg")
+
+plotdat <- df %>% 
+  semi_join(neg, by = "Metabolite")
+
+#ggplot(data = plotdat, aes(x = area, y = cm3)) +
+ # geom_point(aes(shape = Time)) +
+  #stat_smooth(se = FALSE, method = "lm", color = "black") +
+  #facet_wrap(~Metabolite, scales = "free") +
+  #labs(x = "Relative concentration", y = "Tumor volume cm3")
+
+# create in ggpubr
+p <- ggscatter(plotdat, x = "area", y = "cm3",
+          add = "reg.line",
+          conf.int = FALSE,
+          shape = "Time",
+          repel = TRUE,
+          cor.coef = TRUE,
+          cor.method = "pearson",
+          add.params = list(color = "black",
+                            fill = "black")) +
+  facet_wrap(~ Metabolite, scales = "free") +
+  #stat_cor(method = "pearson") +
+  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3))) 
+# move the legend to the right
+ggpar(p, legend = "right") 
+# export the high quality plot _ FOR NOW JUST SCREENSHOT
+#ggexport(g, filename = "./data/plots/manuscript-plots/Fig2-pos_slope.png", res = 300)
+
+
+
+
+## ---- FIG 3: Plasma over time ----
 
 # get plasma data from R/aqueousANOVAs.R
 
@@ -40,7 +81,7 @@ ggplot(data = plotdat, aes(x = Time, y = ab.change, fill = Time)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   facet_wrap(~Metabolite, scales = "free")
 
-## ---- FIG 2: Plasma at Day 35 ----
+## ---- FIG 4: Plasma at Day 35 ----
 
 
 ## Version 1: Y axis is relative concentration (use "plasma" dataframe)
@@ -78,21 +119,9 @@ ggplot(data = plotdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) 
   labs(x = "Treatment", y = "Change from SED+AL", fill = "Treatment") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-## ---- FIG. 3 Plasma corr to tumor volume ----
 
-## Version 1: linear regression
-# FIRST: run regression at ./R/aqueousTumorVol.R
 
-plotdat <- df %>% 
-  semi_join(sigs, by = "Metabolite")
-
-ggplot(data = plotdat, aes(x = area, y = cm3)) +
-  geom_point(aes(shape = Time)) +
-  stat_smooth(se = FALSE, method = "lm") +
-  facet_wrap(~Metabolite, scales = "free") +
-  labs(x = "Relative concentration", y = "Tumor volume cm3")
-
-## ---- FIG. 4: Tumor corr to tumor volume ----
+## ---- FIG. 5: Tumor corr to tumor volume ----
 
 ## Version 1: linear regression
 plotdat <- df %>% 
@@ -104,7 +133,7 @@ ggplot(data = plotdat, aes(x = area, y = cm3)) +
   facet_wrap(~Metabolite, scales = "free") +
   labs(x = "Relative concentration", y = "Tumor volume cm3")
 
-## ---- FIG. 5: Tumor differences between treatments (PA+ER and SED+AL) ----
+## ---- FIG. 6: Tumor differences between treatments (PA+ER and SED+AL) ----
 
 # use "dat" dataframe from R/aqueousANOVAs.R
 paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")
