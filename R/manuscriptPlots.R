@@ -45,7 +45,11 @@ p <- ggscatter(plotdat, x = "area", y = "cm3",
                             fill = "black")) +
   facet_wrap(~ Metabolite, scales = "free") +
   #stat_cor(method = "pearson") +
-  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3))) 
+  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3)))  +
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ))
+
 # move the legend to the right
 ggpar(p, legend = "right") 
 # export the high quality plot _ FOR NOW JUST SCREENSHOT

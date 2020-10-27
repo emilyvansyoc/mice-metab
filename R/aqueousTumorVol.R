@@ -120,36 +120,4 @@ sigs <- pvals %>%
 # save table of results
 #write.table(sigs, "./data/tumorvol-regression-plasma-alltime.txt", sep = "\t", row.names = FALSE)
 
-# plot all
-pdf <- df %>% 
-  semi_join(sigs, by = "Metabolite") %>% 
-  mutate(time1 = case_when(
-    Time %in% "D21" ~ "Day 21",
-    Time %in% "D35" ~ "Day 35"
-  ))
 
-ggplot(data = pdf, aes(x = area, y = cm3)) +
-  geom_point(aes(color = time1)) +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~Metabolite, scales = "free") +
-  labs(x = "Relative concentration", y = "Tumor volume") +
-  scale_color_manual(values = timecols)
-
-# save 
-#ggsave(filename = "./data/plots/tumorreg-plasma.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
-
-
-## ---- stepwise regression; tumor ----
-
-require(MASS)
-
-# get tumor df
-df <- both %>% filter(str_detect(id, "_tumor")) %>% 
-  pivot_wider(names_from = Metabolite, values_from = area) %>% 
-  column_to_rownames(var = "newid") %>% 
-  dplyr::select(-c(id, treatmentID, Exercise, Weight, Time))
-
-dfmat <- as.matrix(df)
-# use AIC as criterion
-full.model <- lm(cm3 ~ ., data = df)
-step.model <- stepAIC(full.model, direction = "both", trace = FALSE)
