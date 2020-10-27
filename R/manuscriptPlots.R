@@ -67,19 +67,32 @@ plotdat <- abdat %>%
   mutate(Time = factor(Time, ordered = TRUE, levels = c("Day 7", "Day 21", "Day 35")))
 
 # Version 1: all 10 metabs on x axis, grouped by Time (may be too busy)
-ggplot(data = plotdat, aes(x = Metabolite, y = ab.change, fill = Time)) +
-  geom_boxplot() +
-  scale_fill_manual(values = timeGreys) +
-  labs(x = "Metabolite", y = "Change from SED+AL", fill = "Time") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#ggplot(data = plotdat, aes(x = Metabolite, y = ab.change, fill = Time)) +
+ # geom_boxplot() +
+#  scale_fill_manual(values = timeGreys) +
+ # labs(x = "Metabolite", y = "Change from SED+AL", fill = "Time") +
+  #theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 # Version 2: facet wrap by metabolite
-ggplot(data = plotdat, aes(x = Time, y = ab.change, fill = Time)) +
-  geom_boxplot() +
+#ggplot(data = plotdat, aes(x = Time, y = ab.change, fill = Time)) +
+ # geom_boxplot() +
+  #scale_fill_manual(values = timeGreys) +
+  #labs(x = "Time", y = "Change from SED+AL", fill = "Time") +
+  #theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  #facet_wrap(~Metabolite, scales = "free")
+
+## Version 2 in ggpubr
+ggboxplot(data = plotdat, x = "Time", y = "ab.change", fill = "Time",
+          facet.by = "Metabolite", #scales = "free",
+          add = list("jitter", mean_sd),
+          error.plot = "errorbar", 
+          xlab = "Time", ylab = "\u0394 SED+AL") +
   scale_fill_manual(values = timeGreys) +
-  labs(x = "Time", y = "Change from SED+AL", fill = "Time") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  facet_wrap(~Metabolite, scales = "free")
+  theme(strip.background = element_rect(
+     fill="white", linetype=0
+  ))
+
+
 
 ## ---- FIG 4: Plasma at Day 35 ----
 
@@ -87,80 +100,103 @@ ggplot(data = plotdat, aes(x = Time, y = ab.change, fill = Time)) +
 ## Version 1: Y axis is relative concentration (use "plasma" dataframe)
 ## (run ANOVA from R/aqueousANOVAs.R before using dataframes)
 
+# get only PA+ER vs SED+AL
+paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")
+
 # filter data
-plotdat <- plasma %>% 
-  semi_join(sigs, by = "Metabolite") %>% 
-  filter(Time == "Day 35") %>% 
+plotdat <- d35 %>% 
+  semi_join(paer, by = "Metabolite") %>% 
+  filter(!treatmentID == "SED+AL") %>% 
   mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("SED+AL", "PA+AL", "SED+ER", "PA+ER")))
 
 # there's only 6 metabolites, so plot all in one 
 
-ggplot(data = plotdat, aes(x = treatmentID, y = area, fill = treatmentID)) +
-  geom_boxplot() +
-  scale_fill_manual(values = treatmentGreys) +
-  facet_wrap(~Metabolite, scales = "free") +
-  labs(x = "Treatment", y = "Relative concentration", fill = "Treatment") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+#ggplot(data = plotdat, aes(x = treatmentID, y = area, fill = treatmentID)) +
+ # geom_boxplot() +
+#  scale_fill_manual(values = treatmentGreys) +
+ # facet_wrap(~Metabolite, scales = "free") +
+  #labs(x = "Treatment", y = "Relative concentration", fill = "Treatment") +
+  #theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 
 ## Version 2: y axis is change SED+AL
 # filter data
-plotdat <- d35 %>% 
-  semi_join(sigs, by = "Metabolite") %>% 
-  filter(!treatmentID == "SED+AL") %>% 
-  mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
+#plotdat <- d35 %>% 
+ # semi_join(sigs, by = "Metabolite") %>% 
+#  filter(!treatmentID == "SED+AL") %>% 
+ # mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
 
-# there's only 6 metabolites, so plot all in one 
-
-ggplot(data = plotdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
-  geom_boxplot() +
-  scale_fill_manual(values = treatmentGreys) +
-  facet_wrap(~Metabolite, scales = "free") +
-  labs(x = "Treatment", y = "Change from SED+AL", fill = "Treatment") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
+# Version 2 in ggpubr
+p <- ggboxplot(data = plotdat, x = "treatmentID", y = "ab.change", fill = "treatmentID",
+          add = "jitter",
+          xlab = "Treatment", ylab = "\u0394 SED+AL",
+          title = "Xanthosine") +
+  scale_fill_manual(values = treatmentGreys)
+ggpar(p, legend = "none")
 
 ## ---- FIG. 5: Tumor corr to tumor volume ----
 
 ## Version 1: linear regression
-plotdat <- df %>% 
-  semi_join(sigs, by = "Metabolite")
+#plotdat <- df %>% 
+ # semi_join(sigs, by = "Metabolite")
 
-ggplot(data = plotdat, aes(x = area, y = cm3)) +
-  geom_point() +
-  stat_smooth(se = FALSE, method = "lm") +
-  facet_wrap(~Metabolite, scales = "free") +
-  labs(x = "Relative concentration", y = "Tumor volume cm3")
+#ggplot(data = plotdat, aes(x = area, y = cm3)) +
+ # geom_point() +
+  #stat_smooth(se = FALSE, method = "lm") +
+  #facet_wrap(~Metabolite, scales = "free") +
+  #labs(x = "Relative concentration", y = "Tumor volume cm3")
+
+## Plot in ggpubr
+# plot positive and negative slopes separately
+pos <- sigs %>% filter(sign == "pos")
+neg <- sigs %>% filter(sign == "neg")
+
+plotdat <- df %>% 
+  semi_join(neg, by = "Metabolite")
+
+ggscatter(plotdat, x = "area", y = "cm3",
+               add = "reg.line",
+               conf.int = FALSE,
+               repel = TRUE,
+               cor.coef = TRUE,
+               cor.method = "pearson",
+               add.params = list(color = "black",
+                                 fill = "black")) +
+  facet_wrap(~ Metabolite, scales = "free") +
+  #stat_cor(method = "pearson") +
+  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3))) +
+  # make facet labels look better
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ))
+
+
 
 ## ---- FIG. 6: Tumor differences between treatments (PA+ER and SED+AL) ----
 
-# use "dat" dataframe from R/aqueousANOVAs.R
+# show all treatments with only the PA+ER vs SED+AL results
+# (Similar to Fig 4)
+
+# get only PA+ER vs SED+AL
 paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")
 
-## VERSION 1 : Y axis is relative concentration
-
-plotdat <- dat %>% 
-  semi_join(paer, by = "Metabolite") %>% 
-  filter(treatmentID == "PA+ER" | treatmentID == "SED+AL") %>% 
-  mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("SED+AL", "PA+ER")))
-
-ggplot(data = plotdat, aes(x = Metabolite, y = area, fill = treatmentID)) +
-  geom_boxplot() +
-  scale_fill_manual(values = treatmentGreys) +
-  labs(x = "Metabolite", y = "Relative concentration", fill = "Treatment") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-## Version 2: y axis is change from SED+AL
-
+# filter data
 plotdat <- abdat %>% 
   semi_join(paer, by = "Metabolite") %>% 
-  filter(treatmentID == "PA+ER")
+  filter(!treatmentID == "SED+AL") %>% 
+  mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("SED+AL", "PA+AL", "SED+ER", "PA+ER")))
 
-ggplot(data = plotdat, aes(x = Metabolite, y = ab.change)) +
-  geom_col() +
-  labs(x = "Metabolite", y = "Change from SED+AL")
-
+# plot in ggpubr
+p <- ggboxplot(data = plotdat, x = "treatmentID", y = "ab.change", fill = "treatmentID",
+               add = "jitter",
+               xlab = "Treatment", ylab = "\u0394 SED+AL",
+          facet.by = "Metabolite", scales = "free") +
+  scale_fill_manual(values = treatmentGreys) +
+  # make facet labels look better
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ))
+ggpar(p, legend = "none")
 
 ## ---- OLDER PLOTS ----
 ### ---- PCA ----
