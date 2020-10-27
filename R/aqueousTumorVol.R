@@ -49,7 +49,7 @@ for(i in 1:length(metab)) {
   p <- data.frame(Metabolite = metab[i],
                   raw.p = round(mod$coefficients[2, 4], 3),
                   r2 = round(mod$r.squared, 3),
-                  adjp = p.adjust(mod$coefficients[2, 4], method = "fdr"),
+                  adjp = round(p.adjust(mod$coefficients[2, 4], method = "fdr"), 3),
                   slope = round(mod$coefficients[2,1], 3))
   
   # store p vals

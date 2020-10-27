@@ -59,7 +59,8 @@ for(i in 1:length(metabs)) {
   # get p vals
   ps <- data.frame(Metabolite = metabs[i],
                    contrast = rownames(tukey[1]$treatmentID),
-                   pval = tukey[1]$treatmentID[,4],
+                   pval = round(tukey[1]$treatmentID[,4], 3),
+                   Fstat = round(summary(mod)[[1]][1,4], 2),
                    row.names = NULL)
   
   # concatenate
@@ -82,34 +83,9 @@ df <- abdat %>%
 # write to table
 #write.table(df, "./data/changefromSEDAL-tumor-ANOVA.txt", sep = "\t", row.names = FALSE)
 
-## PLOTS --- make one plot for each of the metabolites, then put together in PPT
+# get only PA+ER vs SED+AL for Results section
+paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")
 
-# re-order treatments: PA+AL, SED+ER, PA+ER
-plotdat <- abdat %>% 
-  filter(!treatmentID == "SED+AL") %>% 
-  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER"))) %>% 
-  semi_join(sigs, by = "Metabolite")
-
-## do this in a loop
-met <- unique(plotdat$Metabolite)
-
-for(i in 1:length(met)) {
-  # create plot
-  plot <- ggplot(data = filter(plotdat, Metabolite == met[i]), aes(x = treatment, y = ab.change, fill = treatment)) +
-    geom_boxplot() +
-    geom_jitter(width = 0.08, size = 2) +
-    scale_fill_manual(values = treatmentGreys) +
-    theme_classic() +
-    theme(legend.position = "none") +
-    labs(x = "Treatment", y = "Change from SED+AL") +
-    ggtitle(as.character(met[i]))
-  
-  # save
-  ggsave(filename = paste0("./data/plots/indiv-boxplot-tumor-ANOVA-", as.character(met[i]), ".png"), plot = plot, dpi = 600, height = 4.35, width = 7.32, units = "in")
-  
-  # print progress
-  cat(as.character(met[i]))
-}
 
 # for manuscript: need number of replicates (mice) in each treatment
 reps <- abdat %>% 
@@ -117,66 +93,6 @@ reps <- abdat %>%
   group_by(treatmentID) %>% 
   summarize(reps = length(unique(id)))
 
-
-
-## PLOTS: Weight effects under exercise (PA+ER vs PA+AL)
-wt <- c("5-Thymidylic acid", "Acetylphosphate", "ADP", "D-Glucose", "Hydroxproline", "Indole-3-carboxylic acid",
-        "L-Alanine", "L-Arginine", "Succinic acid")
-wtdat <- abdat %>% 
-  filter(Metabolite %in% wt) %>% 
-  filter(!treatmentID %in% "SED+AL") %>% 
-  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
-
-ggplot(data = wtdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
-  geom_boxplot() +
-  facet_wrap(~Metabolite) +
-  scale_fill_manual(values = treatmentIntcols) +
-  labs(x = "Treatment", y = "Change from SED+AL", fill = "Treatment")
-
-ggplot(data = wtdat, aes(x = Metabolite, y = ab.change, fill = treatment)) +
-  geom_boxplot() +
-  scale_fill_manual(values = treatmentGreys)
-
-require(ggpubr)
-ggboxplot(data = wtdat, x = "Metabolite", y = "ab.change", fill = "treatment", palette = "grey") 
-
-
-# save 
-#ggsave(filename = "./data/plots/changeSEDAL-tumor-weighteffects.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
-
-## PLOTS: Weight effects under sedentary (SED+ER vs SED+AL)
-wt <- c("L-Histidine", "Quinolinic acid")
-
-wtdat <- abdat %>% 
-  filter(Metabolite %in% wt) %>% 
-  filter(!treatmentID %in% "SED+AL")
-
-ggplot(data = wtdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
-  geom_boxplot() +
-  facet_wrap(~Metabolite) +
-  scale_fill_manual(values = treatmentIntcols) +
-  labs(x = "Treatment", y = "Change from SED+AL", fill = "Treatment")
-
-## save 
-#ggsave(filename = "./data/plots/changeSEDAL-tumor-weighteffectsSEDENTARY.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
-
-## PLOTS: PA+ER vs SED+AL
-ex <- c("L-Cystathionine", "L-Glutamine", "L-Lysine", "Quinolinic acid", "Taurine", "D-Glucose", "L-Histadine")
-
-exdat <- abdat %>% 
-  filter(Metabolite %in% ex) %>% 
-  filter(!treatmentID %in% "SED+AL") %>% 
-  group_by(treatmentID, Metabolite) %>% 
-  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER"))) %>% 
-  filter(treatment == "PA+ER")
-
-plot <- ggboxplot(data = exdat, x = "Metabolite", y = "ab.change", fill = "grey")+
-  labs(x = "Metabolite", y = "Change from SED+AL") 
-ggpar(plot, ylim = c(-5, 5), yticks.by = 1, rotate = TRUE)
-
-
-## save 
-#ggsave(filename = "./data/plots/changeSEDAL-tumor-PA+ER.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
 
 ## ---- plasma ----
 
@@ -212,6 +128,11 @@ abdat <- plasma %>%
   ))%>% 
   select(id, treatmentID, Time, Metabolite, ab.change) 
 
+# get number of mice in each group
+reps <- abdat %>% 
+  group_by(treatmentID, Time) %>% 
+  summarize(rep = length(unique(id)))
+
 ### 1. ANOVA WITHIN D35 (are there metabolic changes at the end of tumor progression?)
 
 # get only d35
@@ -235,6 +156,7 @@ for(i in 1:length(metabs)) {
   ps <- data.frame(Metabolite = metabs[i],
                    contrast = rownames(tukey[1]$treatmentID),
                    pval = tukey[1]$treatmentID[,4],
+                   Fstat = round(summary(mod)[[1]][1,4], 2),
                    row.names = NULL)
   
   # concatenate
@@ -245,6 +167,9 @@ for(i in 1:length(metabs)) {
 # get significant 
 sigs <- pvals %>% 
   filter(pval < 0.05)
+
+# get only PA+ER vs SED+AL
+paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")  # only Xanthosine
 
 # get table of mean +/- SE for results section
 df <- d35 %>% 
@@ -257,54 +182,10 @@ df <- d35 %>%
 # write to table
 #write.table(df, "./data/changefromSEDAL-plasma-d35-ANOVA.txt", sep = "\t", row.names = FALSE)
 
-### PLOTS --- make one plot for each of the metabolites, then put together in PPT
-
-# re-order treatments: PA+AL, SED+ER, PA+ER
-plotdat <- d35 %>% 
-  filter(!treatmentID == "SED+AL") %>% 
-  mutate(treatment = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER"))) %>% 
-  semi_join(sigs, by = "Metabolite")
-
-## do this in a loop
-met <- unique(plotdat$Metabolite)
-
-for(i in 1:length(met)) {
-  # create plot
-  plot <- ggplot(data = filter(plotdat, Metabolite == met[i]), aes(x = treatment, y = ab.change, fill = treatment)) +
-    geom_boxplot() +
-    geom_jitter(width = 0.08, size = 2) +
-    scale_fill_manual(values = treatmentGreys) +
-    theme_classic() +
-    theme(legend.position = "none") +
-    labs(x = "Treatment", y = "Change from SED+AL") +
-    ggtitle(as.character(met[i]))
-  # save
-  ggsave(filename = paste0("./data/plots/indiv-boxplot-plasmad35-ANOVA-", as.character(met[i]), ".png"), plot = plot, dpi = 600, height = 4.35, width = 7.32, units = "in")
-  
-  # print progress
-  cat(as.character(met[i]))
-}
-
 # for the manuscript: need the number of replicates shown in each group
 reps <- plotdat %>% 
   group_by(treatmentID, Metabolite) %>% 
   summarize(rep = length(unique(id)))
-
-## PLOTS: PA+ER vs SED+ER (exercise-induced changes under energy restriction)
-met <- c("D-4'-Phosphopantothenate", "Phenyllactic acid", "Xanthine")
-exdat <- d35 %>% 
-  filter(Metabolite %in% met) %>% 
-  filter(!treatmentID %in% "SED+AL") 
-
-# plot
-ggplot(data = exdat, aes(x = treatmentID, y = ab.change, fill = treatmentID)) +
-  geom_boxplot() +
-  facet_wrap(~Metabolite) +
-  scale_fill_manual(values = treatmentIntcols) +
-  labs(x = "Treatment", y = "Change from SED+AL", fill = "Treatment")
-
-## save 
-#ggsave(filename = "./data/plots/changeSEDAL-plasma-EXERvsSEDER.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
 
 
 ### 2. Each metabolite over time (within treatments) 
@@ -329,7 +210,8 @@ for(j in 1:length(trt)) {
     ps <- data.frame(Metabolite = mets[i],
                      treatmentID = trt[j],
                      contrast = rownames(tukey[1]$Time),
-                     pval = tukey[1]$Time[,4],
+                     pval = round(tukey[1]$Time[,4], 3),
+                     Fstat = round(summary(mod)[[1]][1,4], 2),
                      row.names = NULL)
     
     # concatenate
@@ -340,6 +222,9 @@ for(j in 1:length(trt)) {
 # get significant 
 sigs <- pvals %>% 
   filter(pval < 0.05)
+
+# get only PA+ER
+paer <- sigs %>% filter(treatmentID == "PA+ER")
 
 # get table of mean +/- SE for results section
 df <- abdat %>% 
