@@ -18,7 +18,7 @@ tum <- read.table("https://github.com/EmilyB17/mice-metab/raw/master/data/tumor-
 theme_set(theme_bw())
 
 # get colors
-source("./R/RColorBrewer.R")
+#source("./R/RColorBrewer.R")
 
 ## wrangle to merge dat and tum
 both <- dat %>% 

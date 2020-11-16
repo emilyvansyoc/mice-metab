@@ -15,7 +15,7 @@ dat <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/
 theme_set(theme_classic())
 
 # get colors
-source("./R/RColorBrewer.R")
+#source("./R/RColorBrewer.R")
 
 ## ---- tumor ----
 

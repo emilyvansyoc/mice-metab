@@ -20,9 +20,11 @@ se <- function(x) sqrt(var(x)/length(x))
 ## Version 1: linear regression
 # FIRST: run regression at ./R/aqueousTumorVol.R
 
+## 11-12 update; plot only r2 > 0.2
+
 # plot positive and negative slopes separately
-pos <- sigs %>% filter(sign == "pos")
-neg <- sigs %>% filter(sign == "neg")
+pos <- sigs %>% filter(r2 > 0.2 & sign == "pos")
+neg <- sigs %>% filter(r2 > 0.2 & sign == "neg")
 
 plotdat <- df %>% 
   semi_join(neg, by = "Metabolite")
@@ -95,6 +97,29 @@ ggboxplot(data = plotdat, x = "Time", y = "ab.change", fill = "Time",
   theme(strip.background = element_rect(
      fill="white", linetype=0
   ))
+
+### Build errorplot with mean + standard error
+p <- ggerrorplot(data = plotdat, x = "Time", y = "ab.change",
+                 # mean and se
+                 desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
+                 # add dotplot and fill by Time
+                 add = "dotplot", add.params = list(fill = "Time", size = 3),
+                 # facet by Metabolite
+                 facet.by = "Metabolite", scales = "free", ncol = 2,
+                 # change axis titles
+                 xlab = "Time", ylab = "\u0394 SED+AL") +
+  # add mean as a line in the middle
+  stat_summary(geom = "point", shape = 95, fun = "mean", col = "black", size = 10) +
+  # color greyscale
+  scale_fill_manual(values = timeGreys) +
+  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
+# add parameters
+ggpar(p, ggtheme = theme_pubr())+
+  # make facet wrap title background white
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ), 
+  strip.text.x = element_text(size = 10, face = "bold"))
 
 
 
