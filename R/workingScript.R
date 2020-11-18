@@ -2,22 +2,22 @@
 
 
 ### Build errorplot with mean + standard error
-p <- ggerrorplot(data = plotdat, x = "Time", y = "ab.change",
+p <- ggerrorplot(data = plotdat, x = "treatmentID", y = "ab.change",
                  # mean and se
                  desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
                  # add dotplot and fill by Time
-                 add = "dotplot", add.params = list(fill = "Time", size = 3),
+                 add = "dotplot", add.params = list(fill = "treatmentID", binwidth = 0.2),
                  # facet by Metabolite
                  facet.by = "Metabolite", scales = "free", ncol = 2,
                  # change axis titles
-                 xlab = "Time", ylab = "\u0394 SED+AL") +
+                 xlab = "Treatment", ylab = "\u0394 SED+AL") +
   # add mean as a line in the middle
   stat_summary(geom = "point", shape = 95, fun = "mean", col = "black", size = 10) +
   # color greyscale
-  scale_fill_manual(values = timeGreys) +
+  scale_fill_manual(values = treatmentGreys) +
   scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
 
-ggpar(p, ggtheme = theme_pubr())+
+ggpar(p, legend = "none", ggtheme = theme_pubr())+
   # make facet wrap title background white
   theme(strip.background = element_rect(
     fill="white", linetype=0
@@ -58,4 +58,12 @@ for(j in 1:length(trt)) {
 pvals$padj <- p.adjust(pvals$pval, method = "fdr")
 
 # get sigs
-sigs <- pvals %>% drop_na() %>% filter(padj < 0.05)
+sigs <- pvals %>% drop_na() %>% filter(pval < 0.05)
+
+
+## figure 4; are there marginally significant metabolites?
+msig <- pvals %>% filter(contrast == "SED+AL-PA+ER") %>% filter(pval < 0.1)
+
+# there are 2 marginally significant metabs and 1 signiificant 
+
+

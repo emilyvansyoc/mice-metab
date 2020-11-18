@@ -125,43 +125,47 @@ ggpar(p, ggtheme = theme_pubr())+
 
 ## ---- FIG 4: Plasma at Day 35 ----
 
+## Version 2: y axis is change SED+AL
 
-## Version 1: Y axis is relative concentration (use "plasma" dataframe)
-## (run ANOVA from R/aqueousANOVAs.R before using dataframes)
-
-# get only PA+ER vs SED+AL
-paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")
+# get significant and marginally significant
+msig <- pvals %>% filter(contrast == "SED+AL-PA+ER") %>% filter(pval < 0.1)
 
 # filter data
 plotdat <- d35 %>% 
-  semi_join(paer, by = "Metabolite") %>% 
-  filter(!treatmentID == "SED+AL") %>% 
-  mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("SED+AL", "PA+AL", "SED+ER", "PA+ER")))
-
-# there's only 6 metabolites, so plot all in one 
-
-#ggplot(data = plotdat, aes(x = treatmentID, y = area, fill = treatmentID)) +
- # geom_boxplot() +
-#  scale_fill_manual(values = treatmentGreys) +
- # facet_wrap(~Metabolite, scales = "free") +
-  #labs(x = "Treatment", y = "Relative concentration", fill = "Treatment") +
-  #theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
-
-## Version 2: y axis is change SED+AL
-# filter data
-#plotdat <- d35 %>% 
- # semi_join(sigs, by = "Metabolite") %>% 
-#  filter(!treatmentID == "SED+AL") %>% 
- # mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
+ semi_join(msig, by = "Metabolite") %>% 
+filter(!treatmentID == "SED+AL") %>% 
+ mutate(treatmentID = factor(treatmentID, ordered = TRUE, levels = c("PA+AL", "SED+ER", "PA+ER")))
 
 # Version 2 in ggpubr
 p <- ggboxplot(data = plotdat, x = "treatmentID", y = "ab.change", fill = "treatmentID",
           add = "jitter",
           xlab = "Treatment", ylab = "\u0394 SED+AL",
-          title = "Xanthosine") +
+          facet_by = "Metabolite") +
   scale_fill_manual(values = treatmentGreys)
 ggpar(p, legend = "none")
+
+### Build errorplot with mean + standard error
+p <- ggerrorplot(data = plotdat, x = "treatmentID", y = "ab.change",
+                 # mean and se
+                 desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
+                 # add dotplot and fill by Time
+                 add = "dotplot", add.params = list(fill = "treatmentID", binwidth = 0.2),
+                 # facet by Metabolite
+                 facet.by = "Metabolite", scales = "free", ncol = 2,
+                 # change axis titles
+                 xlab = "Treatment", ylab = "\u0394 SED+AL") +
+  # add mean as a line in the middle
+  stat_summary(geom = "point", shape = 95, fun = "mean", col = "black", size = 10) +
+  # color greyscale
+  scale_fill_manual(values = treatmentGreys) +
+  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
+
+ggpar(p, legend = "none", ggtheme = theme_pubr())+
+  # make facet wrap title background white
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ), 
+  strip.text.x = element_text(size = 10, face = "bold"))
 
 ## ---- FIG. 5: Tumor corr to tumor volume ----
 
@@ -177,11 +181,11 @@ ggpar(p, legend = "none")
 
 ## Plot in ggpubr
 # plot positive and negative slopes separately
-pos <- sigs %>% filter(sign == "pos")
-neg <- sigs %>% filter(sign == "neg")
+pos <- sigs %>% filter(sign == "pos" & r2 > 0.2)
+neg <- sigs %>% filter(sign == "neg" & r2 > 0.2)
 
 plotdat <- df %>% 
-  semi_join(neg, by = "Metabolite")
+  semi_join(pos, by = "Metabolite")
 
 ggscatter(plotdat, x = "area", y = "cm3",
                add = "reg.line",
@@ -226,6 +230,30 @@ p <- ggboxplot(data = plotdat, x = "treatmentID", y = "ab.change", fill = "treat
     fill="white", linetype=0
   ))
 ggpar(p, legend = "none")
+
+### Build errorplot with mean + standard error
+p <- ggerrorplot(data = plotdat, x = "treatmentID", y = "ab.change",
+                 # mean and se
+                 desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
+                 # add dotplot and fill by Time
+                 add = "dotplot", add.params = list(fill = "treatmentID", binwidth = 0.2),
+                 # facet by Metabolite
+                 facet.by = "Metabolite", scales = "free", ncol = 2,
+                 # change axis titles
+                 xlab = "Treatment", ylab = "\u0394 SED+AL") +
+  # add mean as a line in the middle
+  stat_summary(geom = "point", shape = 95, fun = "mean", col = "black", size = 10) +
+  # color greyscale
+  scale_fill_manual(values = treatmentGreys) +
+  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
+
+ggpar(p, legend = "none", ggtheme = theme_pubr())+
+  # make facet wrap title background white
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ), 
+  strip.text.x = element_text(size = 10, face = "bold"))
+
 
 ## ---- OLDER PLOTS ----
 ### ---- PCA ----

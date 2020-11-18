@@ -68,18 +68,6 @@ sigs <- pvals %>%
 # save table of results
 #write.table(sigs, "./data/tumorvol-regression-tumor.txt", sep = "\t", row.names = FALSE)
 
-# plot all
-pdf <- df %>% 
-  semi_join(sigs, by = "Metabolite")
-
-ggplot(data = pdf, aes(x = area, y = cm3)) +
-  geom_point() +
-  geom_smooth(method = "lm", se = FALSE) +
-  facet_wrap(~Metabolite, scales = "free") +
-  labs(x = "Relative concentration", y = "Tumor volume")
-
-# save 
-#ggsave(filename = "./data/plots/tumorreg-tumor.png", dpi = 600, plot = last_plot(), height = 4.35, width = 7.32, units = "in")
 
 ## ---- plasma regressions ----
 
