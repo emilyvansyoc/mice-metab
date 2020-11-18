@@ -60,6 +60,39 @@ pvals$padj <- p.adjust(pvals$pval, method = "fdr")
 # get sigs
 sigs <- pvals %>% drop_na() %>% filter(pval < 0.05)
 
+# get only PA+ER
+paer <- sigs %>% filter(treatmentID == "PA+ER")
+# filter data
+plotdat <- datf %>% 
+  semi_join(paer, by = "Metabolite") %>% 
+  filter(treatmentID == "PA+ER") %>% 
+  mutate(Time = factor(Time, ordered = TRUE, levels = c("Day 7", "Day 35")))
+
+p <- ggerrorplot(data = plotdat, x = "Time", y = "ab.change",
+                 # mean and se
+                 desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
+                 # add dotplot and fill by Time
+                 add = "dotplot", add.params = list(fill = "Time", binwidth=0.3),
+                 # facet by Metabolite
+                 facet.by = "Metabolite", scales = "free", ncol = 2,
+                 # change axis titles
+                 xlab = "Time", ylab = "\u0394 SED+AL") +
+  # add mean as a line in the middle
+  stat_summary(geom = "point", shape = 95, fun = "mean", col = "black", size = 10) +
+  # color greyscale
+  scale_fill_manual(values = timeGreys) +
+  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
+# add parameters
+ggpar(p, ggtheme = theme_pubr())+
+  # make facet wrap title background white
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ), 
+  strip.text.x = element_text(size = 10, face = "bold"))
+
+
+
+
 
 ## figure 4; are there marginally significant metabolites?
 msig <- pvals %>% filter(contrast == "SED+AL-PA+ER") %>% filter(pval < 0.1)

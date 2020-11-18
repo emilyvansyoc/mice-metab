@@ -103,7 +103,7 @@ p <- ggerrorplot(data = plotdat, x = "Time", y = "ab.change",
                  # mean and se
                  desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
                  # add dotplot and fill by Time
-                 add = "dotplot", add.params = list(fill = "Time", size = 3),
+                 add = "dotplot", add.params = list(fill = "Time", binwidth=0.4),
                  # facet by Metabolite
                  facet.by = "Metabolite", scales = "free", ncol = 2,
                  # change axis titles
