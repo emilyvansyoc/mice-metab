@@ -100,3 +100,62 @@ msig <- pvals %>% filter(contrast == "SED+AL-PA+ER") %>% filter(pval < 0.1)
 # there are 2 marginally significant metabs and 1 signiificant 
 
 
+### more plots
+
+ggbarplot(data = plotdat, x = "treatmentID", y = "ab.change",fill = "treatmentID", 
+          facet.by = "Metabolite", scales = "free",
+          add = c("mean_se", "dotplot"), add.params = list(fill = "lightgrey", binwidth = 0.2, width = 0.3)) +
+  scale_fill_manual(values = treatmentGreys)
+
+
+m <- plotdat %>% 
+  group_by(Metabolite, treatmentID) %>% 
+  summarize(avg = mean(ab.change),
+            sd = sd(ab.change),
+            se = se(ab.change))
+
+ggbarplot(data = m, x= "treatmentID", y = "avg",
+          facet.by = "Metabolite")
+
+met <- unique(plotdat$Metabolite)
+
+
+p <- ggbarplot(data = filter(plotdat, Metabolite == met[2]), x = "treatmentID", y = "ab.change",fill = "treatmentID", 
+               facet.by = "Metabolite", scales = "free",
+               add = c("mean_se", "dotplot"), add.params = list(fill = "lightgrey", width = 0.3),
+               # change axis titles
+               xlab = "Treatment", ylab = "\u0394 SED+AL") +
+  scale_fill_manual(values = treatmentGreys) +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
+# add parameters
+pg <- ggpar(p, legend = "none",
+            ggtheme = theme_pubr())+
+  # make facet wrap title background white
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ), 
+  strip.text.x = element_text(size = 10, face = "bold"))
+
+p1 <- ggbarplot(data = filter(plotdat, Metabolite == met[3]), x = "treatmentID", y = "ab.change",fill = "treatmentID", 
+                facet.by = "Metabolite", scales = "free",
+                add = c("mean_se", "dotplot"), add.params = list(fill = "lightgrey", width = 0.3),
+                # change axis titles
+                xlab = "Treatment", ylab = "\u0394 SED+AL") +
+  scale_fill_manual(values = treatmentGreys) +
+  geom_hline(yintercept = 0) +
+  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
+# add parameters
+p1g <- ggpar(p1, legend = "none",
+             ggtheme = theme_pubr())+
+  # make facet wrap title background white
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ), 
+  strip.text.x = element_text(size = 10, face = "bold"))
+
+ggarrange(pg, p1g, ncol = 2, labels = c("A.", "B.")) #%>% 
+ggexport(filename = "./data/plots/test.png", height = 1200, width = 2000, res = 300, verbose = TRUE)
+
+
+
