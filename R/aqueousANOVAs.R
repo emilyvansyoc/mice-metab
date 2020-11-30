@@ -1,7 +1,8 @@
 
 ## Aqueous metabolite ANOVAs on tumor and plasma tissue
 
-# ---- get data ----
+# ---- getData ----
+
 require(tidyverse)
 
 # define standard error function

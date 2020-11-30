@@ -159,3 +159,45 @@ ggexport(filename = "./data/plots/test.png", height = 1200, width = 2000, res = 
 
 
 
+
+
+p2 <- ggscatter(filter(plotdat2, Metabolite == mets2[2]), x = "area", y = "cm3",
+                # add regression line
+                add = "reg.line", conf.int = FALSE,
+                # shape and fill by Time
+                shape = "Time", color = "Time", palette = c("black", "darkgrey"),
+                repel = TRUE,
+                # add Pearons R on the plot
+                cor.coef = TRUE,
+                cor.method = "pearson",
+                add.params = list(color = "black",
+                                  fill = "black")) +
+  facet_wrap(~ Metabolite, scales = "free") +
+  #stat_cor(method = "pearson") +
+  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3)))  +
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ))
+
+p3 <- ggscatter(filter(plotdat2, Metabolite == mets2[3]), x = "area", y = "cm3",
+                # add regression line
+                add = "reg.line", conf.int = FALSE,
+                # shape and fill by Time
+                shape = "Time", color = "Time", palette = c("black", "darkgrey"),
+                repel = TRUE,
+                # add Pearons R on the plot
+                cor.coef = TRUE,
+                cor.method = "pearson",
+                add.params = list(color = "black",
+                                  fill = "black")) +
+  facet_wrap(~ Metabolite, scales = "free") +
+  #stat_cor(method = "pearson") +
+  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3)))  +
+  theme(strip.background = element_rect(
+    fill="white", linetype=0
+  ))
+
+## add all plots together and 
+ggarrange(p1, p2, p3, ncol = 3, nrow = 1, labels = c("A", "B", "C"),
+          common.legend = TRUE) %>% 
+
