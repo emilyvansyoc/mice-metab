@@ -227,6 +227,45 @@ sigs <- pvals %>%
 # get only PA+ER
 paer <- sigs %>% filter(treatmentID == "PA+ER")
 
+### 2a. Treatments between start & end (Day 7 vs Day 35)
+
+# remove Day 21
+tdat <- abdat %>% filter(!Time == "Day 21")
+
+# get unique metabolites and treatments
+trt <- unique(tdat$treatmentID)
+mets <- unique(tdat$Metabolite)
+
+pvals <- data.frame()
+
+for(j in 1:length(trt)) {
+  
+  for(i in 1:length(mets)) {
+    
+    # define model
+    mod <- t.test(ab.change ~ Time, data = filter(tdat, treatmentID == trt[j] & Metabolite == mets[i]))
+    
+    # get p vals
+    ps <- data.frame(Metabolite = mets[i],
+                     treatmentID = trt[j],
+                     pval = round(mod$p.value, 3),
+                     tstat = round(mod$statistic, 3),
+                     row.names = NULL)
+    
+    # concatenate
+    pvals <- rbind(pvals, ps)
+  }
+}
+
+# get significant 
+sigs <- pvals %>% 
+  drop_na() %>% 
+  filter(pval < 0.05)
+
+# get only PA+ER
+paer <- sigs %>% filter(treatmentID == "PA+ER")
+
+
 # get table of mean +/- SE for results section
 df <- abdat %>% 
   semi_join(sigs, by = "Metabolite") %>% 
