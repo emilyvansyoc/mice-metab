@@ -46,14 +46,42 @@ fig3 <- function(MetaboliteName) {
     scale_y_continuous(expand = expansion(mult = 0, add = c(0.5, 0.5))) 
   
   p1 <- ggpar(p, legend = "none",
-              xlab = FALSE,
+              ggtheme = theme_pubr()) +
+    # center the plot title
+    theme(plot.title = element_text(hjust = 0.5))+
+    rremove("x.text") +
+    rremove("xlab") 
+  
+  return(p1)
+  
+}
+
+# define a similar function to include labels for the bottom plots
+fig3Labs <- function(MetaboliteName) {
+  
+  # define dataframe
+  dat <- plotdat %>% filter(Metabolite == as.character(MetaboliteName))
+  
+  # define plot
+  p <- ggbarplot(data = dat, x = "Time", y = "ab.change", fill = "#D9D9D9",
+                 #facet.by = "Metabolite", scales = "free",
+                 add = c("mean_se", "dotplot"), add.params = list(fill = "Time", width = 0.4, binwidth = 0.2),
+                 # change axis titles
+                 xlab = "Time", ylab = "\u0394 SED+AL",
+                 # add title
+                 title = as.character(MetaboliteName)) +
+    scale_fill_manual(values = c("#FFFFFF", "#525252")) +
+    geom_hline(yintercept = 0) +
+    scale_y_continuous(expand = expansion(mult = 0, add = c(0.5, 0.5))) 
+  
+  p1 <- ggpar(p, legend = "none",
               ggtheme = theme_pubr()) +
     # center the plot title
     theme(plot.title = element_text(hjust = 0.5))
   
   return(p1)
   
-  }
+}
 
   
 ## ---- make plots ----
@@ -72,8 +100,9 @@ p9 <- fig3(mets[9])
 p10 <- fig3(mets[10])
 p11 <- fig3(mets[11])
 p12 <- fig3(mets[12])
-p13 <- fig3(mets[13])
-p14 <- fig3(mets[14])
+# the last 2 need labels since they will be at the bottom
+p13 <- fig3Labs(mets[13])
+p14 <- fig3Labs(mets[14])
 
 
 
