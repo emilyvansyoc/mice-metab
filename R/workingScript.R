@@ -1,36 +1,23 @@
 
 
+# get only plasma and calculate Time column
+plasma <- dat %>% 
+  filter(str_detect(id, "_plasma")) %>% 
+  # make Time column
+  mutate(Time = case_when(
+    str_detect(id, "_plasmaD7") ~ "Day 7",
+    str_detect(id, "_plasmaD21") ~ "Day 21",
+    str_detect(id, "_plasmaD35") ~ "Day 35"
+  ))
 
-### Build errorplot with mean + standard error
-p <- ggerrorplot(data = plotdat, x = "treatmentID", y = "ab.change",
-                 # mean and se
-                 desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
-                 # add dotplot and fill by Time
-                 add = "dotplot", add.params = list(fill = "treatmentID", binwidth = 0.2),
-                 # facet by Metabolite
-                 facet.by = "Metabolite", scales = "free", ncol = 2,
-                 # change axis titles
-                 xlab = "Treatment", ylab = "\u0394 SED+AL") +
-  # add mean as a line in the middle
-  stat_summary(geom = "point", shape = 95, fun = "mean", col = "black", size = 10) +
-  # color greyscale
-  scale_fill_manual(values = treatmentGreys) +
-  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
-
-ggpar(p, legend = "none", ggtheme = theme_pubr())+
-  # make facet wrap title background white
-  theme(strip.background = element_rect(
-    fill="white", linetype=0
-  ), 
-  strip.text.x = element_text(size = 10, face = "bold"))
-
-
-### REMOVE D21 and do T test between Day 7 and Day 35
-datf <- abdat %>% filter(!Time == "Day 21") %>% filter(!treatmentID == "SED+AL")
+# remove Day 21
+tdat <- plasma %>% filter(!Time == "Day 21")
 
 # get unique metabolites and treatments
-trt <- unique(datf$treatmentID)
-mets <- unique(datf$Metabolite)
+trt <- unique(tdat$treatmentID)
+mets <- unique(tdat$Metabolite)
+# L-Lactic acid is not found in the plasma; remove 
+mets <- mets[-3]
 
 pvals <- data.frame()
 
@@ -39,14 +26,13 @@ for(j in 1:length(trt)) {
   for(i in 1:length(mets)) {
     
     # define model
-    mod <- t.test(ab.change ~ Time, data = filter(datf, treatmentID == trt[j] & Metabolite == mets[i]))
-    
+    mod <- t.test(area ~ Time, data = filter(tdat, treatmentID == trt[j] & Metabolite == mets[i]))
     
     # get p vals
     ps <- data.frame(Metabolite = mets[i],
                      treatmentID = trt[j],
                      pval = round(mod$p.value, 3),
-                     Tstat = round(mod$statistic, 3),
+                     tstat = round(mod$statistic, 3),
                      row.names = NULL)
     
     # concatenate
@@ -54,150 +40,88 @@ for(j in 1:length(trt)) {
   }
 }
 
-# add FDR adjustment  
-pvals$padj <- p.adjust(pvals$pval, method = "fdr")
-
-# get sigs
-sigs <- pvals %>% drop_na() %>% filter(pval < 0.05)
+# get significant 
+sigs <- pvals %>% 
+  drop_na() %>% 
+  filter(pval < 0.05)
 
 # get only PA+ER
 paer <- sigs %>% filter(treatmentID == "PA+ER")
+
+## PLOTS
+
 # filter data
-plotdat <- datf %>% 
+plotdat <- tdat %>% 
   semi_join(paer, by = "Metabolite") %>% 
   filter(treatmentID == "PA+ER") %>% 
   mutate(Time = factor(Time, ordered = TRUE, levels = c("Day 7", "Day 35")))
 
-p <- ggerrorplot(data = plotdat, x = "Time", y = "ab.change",
-                 # mean and se
-                 desc_stat = "mean_se", error.plot = "errorbar", width = 0.6,
-                 # add dotplot and fill by Time
-                 add = "dotplot", add.params = list(fill = "Time", binwidth=0.3),
-                 # facet by Metabolite
-                 facet.by = "Metabolite", scales = "free", ncol = 2,
+fig3 <- function(MetaboliteName) {
+  
+  # define dataframe
+  dat <- plotdat %>% filter(Metabolite == as.character(MetaboliteName))
+  
+  # define plot
+  p <- ggbarplot(data = dat, x = "Time", y = "ab.change", fill = "#D9D9D9",
+                 #facet.by = "Metabolite", scales = "free",
+                 add = c("mean_se", "dotplot"), add.params = list(fill = "Time", width = 0.4, binwidth = 0.2),
                  # change axis titles
-                 xlab = "Time", ylab = "\u0394 SED+AL") +
-  # add mean as a line in the middle
-  stat_summary(geom = "point", shape = 95, fun = "mean", col = "black", size = 10) +
-  # color greyscale
-  scale_fill_manual(values = timeGreys) +
-  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
-# add parameters
-ggpar(p, ggtheme = theme_pubr())+
-  # make facet wrap title background white
-  theme(strip.background = element_rect(
-    fill="white", linetype=0
-  ), 
-  strip.text.x = element_text(size = 10, face = "bold"))
+                 xlab = "Time", ylab = "\u0394 SED+AL",
+                 # add title
+                 title = as.character(MetaboliteName)) +
+    scale_fill_manual(values = c("#FFFFFF", "#525252")) +
+    geom_hline(yintercept = 0) +
+    scale_y_continuous(expand = expansion(mult = 0, add = c(0.5, 0.5))) 
+  
+  p1 <- ggpar(p, legend = "none",
+              ggtheme = theme_pubr()) +
+    # center the plot title
+    theme(plot.title = element_text(hjust = 0.5))+
+    rremove("x.text") +
+    rremove("xlab") 
+  
+  return(p1)
+  
+}
 
-
-
-
-
-## figure 4; are there marginally significant metabolites?
-msig <- pvals %>% filter(contrast == "SED+AL-PA+ER") %>% filter(pval < 0.1)
-
-# there are 2 marginally significant metabs and 1 signiificant 
-
-
-### more plots
-
-ggbarplot(data = plotdat, x = "treatmentID", y = "ab.change",fill = "treatmentID", 
-          facet.by = "Metabolite", scales = "free",
-          add = c("mean_se", "dotplot"), add.params = list(fill = "lightgrey", binwidth = 0.2, width = 0.3)) +
-  scale_fill_manual(values = treatmentGreys)
-
-
-m <- plotdat %>% 
-  group_by(Metabolite, treatmentID) %>% 
-  summarize(avg = mean(ab.change),
-            sd = sd(ab.change),
-            se = se(ab.change))
-
-ggbarplot(data = m, x= "treatmentID", y = "avg",
-          facet.by = "Metabolite")
+# define a similar function to include labels for the bottom plots
+fig3Labs <- function(MetaboliteName) {
+  
+  # define dataframe
+  dat <- plotdat %>% filter(Metabolite == as.character(MetaboliteName))
+  
+  # define plot
+  p <- ggbarplot(data = dat, x = "Time", y = "area", fill = "#D9D9D9",
+                 #facet.by = "Metabolite", scales = "free",
+                 add = c("mean_se", "dotplot"), add.params = list(fill = "Time", width = 0.4, binwidth = 0.2),
+                 # change axis titles
+                 xlab = "Time", ylab = "Relative Concentration",
+                 # add title
+                 title = as.character(MetaboliteName)) +
+    scale_fill_manual(values = c("#FFFFFF", "#525252")) +
+    geom_hline(yintercept = 0) +
+    scale_y_continuous(expand = expansion(mult = 0, add = c(0.5, 0.5))) 
+  
+  p1 <- ggpar(p, legend = "none",
+              ggtheme = theme_pubr()) +
+    # center the plot title
+    theme(plot.title = element_text(hjust = 0.5))
+  
+  return(p1)
+  
+}
 
 met <- unique(plotdat$Metabolite)
 
+p1 <- fig3Labs(met[1])
+p2 <- fig3Labs(met[2])
+p3 <- fig3Labs(met[3])
+p4 <- fig3Labs(met[4])
 
-p <- ggbarplot(data = filter(plotdat, Metabolite == met[2]), x = "treatmentID", y = "ab.change",fill = "treatmentID", 
-               facet.by = "Metabolite", scales = "free",
-               add = c("mean_se", "dotplot"), add.params = list(fill = "lightgrey", width = 0.3),
-               # change axis titles
-               xlab = "Treatment", ylab = "\u0394 SED+AL") +
-  scale_fill_manual(values = treatmentGreys) +
-  geom_hline(yintercept = 0) +
-  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
-# add parameters
-pg <- ggpar(p, legend = "none",
-            ggtheme = theme_pubr())+
-  # make facet wrap title background white
-  theme(strip.background = element_rect(
-    fill="white", linetype=0
-  ), 
-  strip.text.x = element_text(size = 10, face = "bold"))
-
-p1 <- ggbarplot(data = filter(plotdat, Metabolite == met[3]), x = "treatmentID", y = "ab.change",fill = "treatmentID", 
-                facet.by = "Metabolite", scales = "free",
-                add = c("mean_se", "dotplot"), add.params = list(fill = "lightgrey", width = 0.3),
-                # change axis titles
-                xlab = "Treatment", ylab = "\u0394 SED+AL") +
-  scale_fill_manual(values = treatmentGreys) +
-  geom_hline(yintercept = 0) +
-  scale_y_continuous(expand = expansion(mult = 0, add = c(0, 0.6)))
-# add parameters
-p1g <- ggpar(p1, legend = "none",
-             ggtheme = theme_pubr())+
-  # make facet wrap title background white
-  theme(strip.background = element_rect(
-    fill="white", linetype=0
-  ), 
-  strip.text.x = element_text(size = 10, face = "bold"))
-
-ggarrange(pg, p1g, ncol = 2, labels = c("A.", "B.")) #%>% 
-ggexport(filename = "./data/plots/test.png", height = 1200, width = 2000, res = 300, verbose = TRUE)
-
-
-
-
-
-p2 <- ggscatter(filter(plotdat2, Metabolite == mets2[2]), x = "area", y = "cm3",
-                # add regression line
-                add = "reg.line", conf.int = FALSE,
-                # shape and fill by Time
-                shape = "Time", color = "Time", palette = c("black", "darkgrey"),
-                repel = TRUE,
-                # add Pearons R on the plot
-                cor.coef = TRUE,
-                cor.method = "pearson",
-                add.params = list(color = "black",
-                                  fill = "black")) +
-  facet_wrap(~ Metabolite, scales = "free") +
-  #stat_cor(method = "pearson") +
-  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3)))  +
-  theme(strip.background = element_rect(
-    fill="white", linetype=0
-  ))
-
-p3 <- ggscatter(filter(plotdat2, Metabolite == mets2[3]), x = "area", y = "cm3",
-                # add regression line
-                add = "reg.line", conf.int = FALSE,
-                # shape and fill by Time
-                shape = "Time", color = "Time", palette = c("black", "darkgrey"),
-                repel = TRUE,
-                # add Pearons R on the plot
-                cor.coef = TRUE,
-                cor.method = "pearson",
-                add.params = list(color = "black",
-                                  fill = "black")) +
-  facet_wrap(~ Metabolite, scales = "free") +
-  #stat_cor(method = "pearson") +
-  labs(x = "Relative concentration", y = expression(paste("Tumor volume ", cm^3)))  +
-  theme(strip.background = element_rect(
-    fill="white", linetype=0
-  ))
-
-## add all plots together and 
-ggarrange(p1, p2, p3, ncol = 3, nrow = 1, labels = c("A", "B", "C"),
-          common.legend = TRUE) %>% 
-
+g1 <- ggarrange(p1, 
+                p2, 
+                p3,
+                p4,
+                ncol = 2, nrow = 2,
+                labels = c("A", "B", "C", "D"))
+g1
