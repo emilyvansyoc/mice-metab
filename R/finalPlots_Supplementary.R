@@ -140,3 +140,46 @@ g1 <- ggarrange(pa, pb,
 
 # save
 ggsave(filename = "./data/plots/manuscript-plots/FigureS2.png", plot = g1, dpi = 300)
+
+### ---- S3: PCA of plasma by time ----
+
+# get plasma dataframe and make Time column
+pdf <- datf %>% 
+  filter(tissue.type == "Plasma") %>% 
+  mutate(Time = case_when(
+    str_detect(id, "D7") ~ "Day 7",
+    str_detect(id, "D21") ~ "Day 21",
+    str_detect(id, "D35") ~ "Day 35"
+  )) %>% 
+  mutate(Time = factor(Time, ordered = TRUE, labels = c("Day 7", "Day 21", "Day 35")))
+plasmapca <- pdf %>% 
+  select(-c(treatmentID, Exercise, Weight, tissue.type, id, Time))
+
+# make the PCA
+pca <- PCA(plasmapca, 
+           scale.unit = TRUE, # scale everything to equal variance
+           graph = FALSE) # don't print a graph
+
+
+# plot the biplot WITH LABELS 
+fviz_pca_ind(pca,
+                   # how to color the points
+                   col.ind = pdf$Time,
+                   legend.title = "Time",
+                   # shape of the points
+                   geom.ind = "point",
+                   addEllipses = TRUE,
+                   # only show the variables that have top 5 "contribution" to the pca
+                   #select.var = list(contrib = 10),
+                   #col.var = "black",
+                   #label = "none",
+                   # don't let them overlap
+                   #repel = TRUE,
+                   # x and y axis labels with variance
+                   xlab = paste0("PCA1 (", round(pca$eig[1, 2], 1), "%)"),
+                   ylab = paste0("PCA2 (", round(pca$eig[2, 2], 1), "%)"),
+                   title = NULL) +
+  scale_color_manual(values = timecols)
+# save
+ggsave(filename = "./data/plots/manuscript-plots/FigureS3.png", plot = last_plot(), dpi = 300)
+

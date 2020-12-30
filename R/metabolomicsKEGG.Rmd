@@ -5,13 +5,8 @@ date: "4/24/2020"
 output: github_document
 ---
 
-### Functional orthology from KEGG database
+### Functional orthology from KEGG database  
 
-Class compound names were matched to KEGG numbers in MetaboAnalyst, KEGG, or PubChem. 
-
-One Class did not match to any KEGG or Pubchem numbers: Octoluse-bisphosphate. This is removed from further analyses in this script.
-
-There are 15 Classs which did not match to KEGG numbers, so they are not included in this analysis.
 
 ```{r}
 

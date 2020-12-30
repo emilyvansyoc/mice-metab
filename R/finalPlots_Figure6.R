@@ -12,9 +12,69 @@ theme_set(theme_minimal())
 # function to calculate standard error
 se <- function(x) sqrt(var(x)/length(x))
 
+# get data
+dat <- read.table("https://raw.githubusercontent.com/EmilyB17/mice-metab/master/data/cleanedNamesAqueous.txt", sep = "\t", header = TRUE) %>% 
+  # hyphenate instead of _ for treatment ID
+  mutate(treatmentID = str_replace_all(treatmentID, "_", "-"))
+
+# get the average of each SED+AL metabolite
+
+sedal <- dat %>% 
+  # get only tumor
+  filter(str_detect(id, "_tumor")) %>% 
+  # get only SED_AL
+  filter(treatmentID == "SED+AL") %>% 
+  group_by(Metabolite) %>% 
+  # average
+  summarize(avgSedAl = mean(area),
+            seSedAl = se(area))
+
+# get change compared to SED+AL
+abdat <- dat %>% 
+  filter(str_detect(id, "_tumor")) %>% 
+  left_join(sedal, by = "Metabolite") %>% 
+  # calculate change
+  mutate(ab.change = area - avgSedAl) %>% 
+  # SED+AL is now 0
+  mutate(ab.change = case_when(
+    treatmentID %in% "SED+AL" ~ 0,
+    treatmentID != "SED+AL" ~ ab.change
+  ))%>% 
+  select(id, treatmentID, Metabolite, ab.change) 
+
+# perform ANOVA between treatment groups
+metabs <- unique(abdat$Metabolite)
+pvals <- data.frame()
+
+for(i in 1:length(metabs)) {
+  
+  # define model
+  mod <- aov(ab.change ~ treatmentID, data = filter(abdat, Metabolite == metabs[i]))
+  
+  # do Tukey posthoc
+  tukey <- TukeyHSD(mod)
+  
+  # get p vals
+  ps <- data.frame(Metabolite = metabs[i],
+                   contrast = rownames(tukey[1]$treatmentID),
+                   pval = round(tukey[1]$treatmentID[,4], 3),
+                   Fstat = round(summary(mod)[[1]][1,4], 2),
+                   numDF = summary(mod)[[1]]$Df[1],
+                   denDF = summary(mod)[[1]]$Df[2],
+                   row.names = NULL)
+  
+  # concatenate
+  pvals <- rbind(pvals, ps)
+  
+}
+
+# get significant 
+sigs <- pvals %>% 
+  filter(pval < 0.05)
+
+
 ## ---- FIG. 6: Tumor differences between treatments (PA+ER and SED+AL) ----
 
-# run: R/aqueousANOVAs.R lines 9-13, 25-74
 
 # get only PA+ER vs SED+AL
 paer <- sigs %>% filter(contrast == "SED+AL-PA+ER")
@@ -69,12 +129,13 @@ p3 <- fig6(mets[3])
 p4 <- fig6(mets[4])
 p5 <- fig6(mets[5], binwidth = 0.4) # not sure what's funky with Quin acid but quick fix for now
 p6 <- fig6(mets[6])
+p7 <- fig6(mets[7])
 
 ## arrange and export as one plot
 ## we want quinolinic acid (met5) to be LAST
-g1 <- ggarrange(p1, p2, p3, p4, p6, p5,
-                ncol = 2, nrow = 3,
+g1 <- ggarrange(p1, p2, p3, p4, p7, p6, p5,
+                ncol = 2, nrow = 4,
                 labels = c("A", "B", "C", "D", "E", "F", "G"))
 
 # EXPORT
-ggsave(filename = "./data/plots/manuscript-plots/fig6.jpeg", plot = g1,  device = "jpeg", dpi = 600, height = 6, width = 8, units = "in")
+ggsave(filename = "./data/plots/manuscript-plots/fig6.jpeg", plot = g1,  device = "jpeg", dpi = 600, height = 8, width = 8, units = "in")
